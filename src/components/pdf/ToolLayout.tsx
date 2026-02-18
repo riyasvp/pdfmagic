@@ -37,6 +37,8 @@ import {
   reorderPages,
   cropPDF,
   getPDFInfo,
+  pdfToImages,
+  mergePDFs,
   type RotationAngle,
 } from "@/lib/pdf-tools";
 
@@ -82,6 +84,18 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
 
   // Delete pages-specific state
   const [pagesToDelete, setPagesToDelete] = useState("");
+
+  // Page numbers-specific state
+  const [pageNumberPosition, setPageNumberPosition] = useState<string>("bottom-center");
+  const [pageNumberStart, setPageNumberStart] = useState(1);
+
+  // Protect PDF-specific state
+  const [protectPassword, setProtectPassword] = useState("");
+
+  // PDF to Image-specific state
+  const [imageFormat, setImageFormat] = useState<'png' | 'jpg'>('png');
+  const [imageDpi, setImageDpi] = useState(150);
+  const [imageResults, setImageResults] = useState<{ blob: Blob; name: string }[]>([]);
 
   // Result blob for download
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
@@ -270,6 +284,100 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
     }
   }, [files]);
 
+  // Add Page Numbers handler
+  const handleAddPageNumbers = useCallback(async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const result = await addPageNumbers(file, {
+        position: pageNumberPosition as 'bottom-center' | 'bottom-left' | 'bottom-right' | 'top-center' | 'top-left' | 'top-right',
+        startNumber: pageNumberStart,
+      });
+      setProgress(100);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to add page numbers");
+      setProgress(0);
+    }
+  }, [files, pageNumberPosition, pageNumberStart]);
+
+  // Protect PDF handler
+  const handleProtectPDF = useCallback(async () => {
+    if (files.length === 0) return;
+    if (!protectPassword.trim()) {
+      setErrorMessage("Please enter a password");
+      return;
+    }
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const result = await protectPDF(file, protectPassword);
+      setProgress(100);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to protect PDF");
+      setProgress(0);
+    }
+  }, [files, protectPassword]);
+
+  // PDF to Images handler
+  const handlePdfToImages = useCallback(async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const results = await pdfToImages(file, imageFormat, imageDpi);
+      setProgress(100);
+      setImageResults(results);
+      setStatus("success");
+      setOutputFileName(`${results.length} images created`);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to convert PDF to images");
+      setProgress(0);
+    }
+  }, [files, imageFormat, imageDpi]);
+
+  // Merge PDFs handler
+  const handleMergePDFs = useCallback(async () => {
+    if (files.length === 0) return;
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const result = await mergePDFs(files);
+      setProgress(100);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to merge PDFs");
+      setProgress(0);
+    }
+  }, [files]);
+
   // Download result handler
   const handleDownloadResult = useCallback(() => {
     if (resultBlob) {
@@ -305,6 +413,22 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
     }
     if (tool.id === "from-image") {
       await handleImagesToPDF();
+      return;
+    }
+    if (tool.id === "page-numbers") {
+      await handleAddPageNumbers();
+      return;
+    }
+    if (tool.id === "protect") {
+      await handleProtectPDF();
+      return;
+    }
+    if (tool.id === "pdf-to-image") {
+      await handlePdfToImages();
+      return;
+    }
+    if (tool.id === "merge") {
+      await handleMergePDFs();
       return;
     }
 
@@ -450,6 +574,12 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
     setPageRanges("");
     setPageNumbers("");
     setPagesToDelete("");
+    setProtectPassword("");
+    setPageNumberPosition("bottom-center");
+    setPageNumberStart(1);
+    setImageFormat("png");
+    setImageDpi(150);
+    setImageResults([]);
   };
 
   const copyToClipboard = async (text: string) => {
@@ -639,17 +769,92 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
       case "protect":
         return (
           <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Password Protection:</h3>
             <div>
-              <label className="text-sm font-medium">Password</label>
+              <label className="text-sm font-medium">Enter password to protect PDF</label>
               <input
                 type="password"
                 className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
                 placeholder="Enter password"
-                onChange={(e) => setOptions({ ...options, password: e.target.value })}
+                value={protectPassword}
+                onChange={(e) => setProtectPassword(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground mt-1">Password will be required to open the PDF</p>
+            </div>
+          </div>
+        );
+
+      case "page-numbers":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Page Number Settings:</h3>
+            <div>
+              <label className="text-sm font-medium">Position</label>
+              <select
+                className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
+                value={pageNumberPosition}
+                onChange={(e) => setPageNumberPosition(e.target.value)}
+              >
+                <option value="bottom-center">Bottom Center</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-right">Bottom Right</option>
+                <option value="top-center">Top Center</option>
+                <option value="top-left">Top Left</option>
+                <option value="top-right">Top Right</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Start Number</label>
+              <input
+                type="number"
+                min="1"
+                className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
+                value={pageNumberStart}
+                onChange={(e) => setPageNumberStart(parseInt(e.target.value) || 1)}
               />
             </div>
           </div>
         );
+
+      case "pdf-to-image":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Image Settings:</h3>
+            <div>
+              <label className="text-sm font-medium">Image Format</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <Button
+                  variant={imageFormat === 'png' ? "default" : "outline"}
+                  onClick={() => setImageFormat('png')}
+                  className="py-4"
+                >
+                  PNG (Lossless)
+                </Button>
+                <Button
+                  variant={imageFormat === 'jpg' ? "default" : "outline"}
+                  onClick={() => setImageFormat('jpg')}
+                  className="py-4"
+                >
+                  JPG (Smaller)
+                </Button>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Quality (DPI)</label>
+              <select
+                className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
+                value={imageDpi}
+                onChange={(e) => setImageDpi(parseInt(e.target.value))}
+              >
+                <option value="72">72 DPI (Screen)</option>
+                <option value="96">96 DPI (Web)</option>
+                <option value="150">150 DPI (Standard)</option>
+                <option value="300">300 DPI (Print)</option>
+              </select>
+            </div>
+          </div>
+        );
+
       case "ocr":
         return (
           <div className="space-y-4">
@@ -855,7 +1060,7 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
               className="mt-6"
             >
               {/* Show options directly for client-side tools */}
-              {["split", "compress", "rotate", "watermark", "delete-pages"].includes(tool.id) ? (
+              {["split", "compress", "rotate", "watermark", "delete-pages", "page-numbers", "protect", "pdf-to-image"].includes(tool.id) ? (
                 <div className="p-4 rounded-xl bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-500/20">
                   {renderToolOptions()}
                 </div>
@@ -917,7 +1122,7 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
           )}
 
           {/* Success & Download - Client-side tools */}
-          {status === "success" && (resultBlob || compressResult || splitResults.length > 0) ? (
+          {status === "success" && (resultBlob || compressResult || splitResults.length > 0 || imageResults.length > 0) ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -927,7 +1132,7 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
                 <tool.icon className="w-12 h-12 text-white" />
               </div>
               <h2 className="text-2xl font-bold mb-2">
-                {compressResult ? "Compressed!" : splitResults.length > 0 ? "Split Complete!" : "Done!"}
+                {compressResult ? "Compressed!" : splitResults.length > 0 ? "Split Complete!" : imageResults.length > 0 ? "Converted!" : "Done!"}
               </h2>
               
               {/* Show compression stats */}
@@ -956,8 +1161,15 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
                 </p>
               )}
 
+              {/* Show image results count */}
+              {imageResults.length > 0 && (
+                <p className="text-muted-foreground mb-6">
+                  Created {imageResults.length} image{imageResults.length > 1 ? "s" : ""}
+                </p>
+              )}
+
               {/* Show file name for other tools */}
-              {resultBlob && !compressResult && !splitResults.length && (
+              {resultBlob && !compressResult && !splitResults.length && !imageResults.length && (
                 <p className="text-muted-foreground mb-8">{outputFileName}</p>
               )}
 
@@ -967,6 +1179,8 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
                   onClick={() => {
                     if (splitResults.length > 0) {
                       downloadMultipleAsZip(splitResults, "split_pdfs.zip");
+                    } else if (imageResults.length > 0) {
+                      downloadMultipleAsZip(imageResults, "images.zip");
                     } else {
                       handleDownloadResult();
                     }

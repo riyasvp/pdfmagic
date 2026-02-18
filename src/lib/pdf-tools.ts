@@ -489,3 +489,79 @@ export async function cropPDF(
     name: `${baseName}_cropped.pdf`,
   };
 }
+
+// ==========================================
+// PDF TO IMAGES
+// ==========================================
+
+export async function pdfToImages(
+  file: File,
+  format: 'png' | 'jpg' = 'png',
+  dpi: number = 150
+): Promise<{ blob: Blob; name: string }[]> {
+  if (typeof window === 'undefined') {
+    throw new Error('Browser required for PDF to Image conversion');
+  }
+
+  const pdfjsLib = await import('pdfjs-dist');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const scale = dpi / 72;
+  const images: { blob: Blob; name: string }[] = [];
+  const baseName = file.name.replace('.pdf', '');
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    await page.render({ canvasContext: ctx as unknown as CanvasRenderingContext2D, viewport }).promise;
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Canvas failed'))),
+        format === 'png' ? 'image/png' : 'image/jpeg',
+        format === 'jpg' ? 0.92 : undefined
+      );
+    });
+
+    images.push({
+      blob,
+      name: `${baseName}_page_${i}.${format}`,
+    });
+  }
+
+  return images;
+}
+
+// ==========================================
+// MERGE PDFs
+// ==========================================
+
+export async function mergePDFs(files: File[]): Promise<{ blob: Blob; name: string }> {
+  const mergedPdf = await PDFDocument.create();
+
+  for (const file of files) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+    const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+    pages.forEach((page) => mergedPdf.addPage(page));
+  }
+
+  const pdfBytes = await mergedPdf.save({ useObjectStreams: true });
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+  return {
+    blob,
+    name: 'merged.pdf',
+  };
+}

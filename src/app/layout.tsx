@@ -14,24 +14,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: {
+    default: "PDFMagic - Free Online PDF Tools",
+    template: "%s | PDFMagic",
+  },
+  description: "Free online PDF tools - merge, split, compress, convert, and edit PDFs. Fast, secure, and easy to use. No signup required!",
+  keywords: ["PDF", "merge PDF", "split PDF", "compress PDF", "PDF converter", "free PDF tools", "edit PDF", "PDF to Word"],
+  authors: [{ name: "PDFMagic" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/favicon.svg",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "PDFMagic - Free Online PDF Tools",
+    description: "Merge, split, compress, convert, and edit PDFs for free. No signup required!",
+    url: "https://pdfmagic.store",
+    siteName: "PDFMagic",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "PDFMagic - Free Online PDF Tools",
+    description: "Merge, split, compress, convert, and edit PDFs for free. No signup required!",
   },
 };
 
