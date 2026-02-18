@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = [
+  "python311",
+  "python311Packages.pip",
+  "tesseract",
+  "poppler-utils",
+  "ghostscript"
+]
+
+[phases.install]
+cmds = [
+  "bun install",
+  "pip install --user -r requirements.txt"
+]
+
+[phases.build]
+cmds = ["bun run build"]
+
+[start]
+cmd = "bun run start"
