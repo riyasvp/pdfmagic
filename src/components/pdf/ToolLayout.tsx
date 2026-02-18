@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Settings, ChevronDown, Send, Loader2, Copy, Check, FileText, MessageSquare } from "lucide-react";
+import { ArrowLeft, Settings, ChevronDown, Send, Loader2, Copy, Check, FileText, MessageSquare, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "./FileUpload";
 import { ProcessingStatus } from "./ProcessingStatus";
@@ -11,6 +11,34 @@ import { DownloadButton } from "./DownloadButton";
 import { MergePDFGrid } from "./MergePDFGrid";
 import { cn } from "@/lib/utils";
 import type { Tool } from "@/lib/tools-config";
+import {
+  splitPDFByRanges,
+  extractPages as splitExtractPages,
+  splitPDFEveryNPages,
+  splitPDFIntoNFiles,
+  splitAllPages,
+  downloadBlob,
+  downloadMultipleAsZip,
+} from "@/lib/pdf-split";
+import {
+  compressPDF,
+  formatFileSize,
+  type CompressionQuality,
+  type CompressionResult,
+} from "@/lib/pdf-compress";
+import {
+  rotatePDF,
+  addWatermark,
+  deletePages,
+  imagesToPDF,
+  addPageNumbers,
+  protectPDF,
+  extractPages,
+  reorderPages,
+  cropPDF,
+  getPDFInfo,
+  type RotationAngle,
+} from "@/lib/pdf-tools";
 
 type Status = "idle" | "uploading" | "processing" | "success" | "error";
 
@@ -30,8 +58,33 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
   const [downloadUrl, setDownloadUrl] = useState<string>("");
   const [outputFileName, setOutputFileName] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [showOptions, setShowOptions] = useState(false);
+  const [showOptions, setShowOptions] = useState(true);
   const [options, setOptions] = useState<Record<string, unknown>>({});
+
+  // Split-specific state
+  const [splitMode, setSplitMode] = useState<string>("ranges");
+  const [pageRanges, setPageRanges] = useState("");
+  const [pageNumbers, setPageNumbers] = useState("");
+  const [everyPages, setEveryPages] = useState("3");
+  const [fileCount, setFileCount] = useState("2");
+  const [splitResults, setSplitResults] = useState<{ blob: Blob; name: string }[]>([]);
+
+  // Compress-specific state
+  const [compressionQuality, setCompressionQuality] = useState<CompressionQuality>("medium");
+  const [compressResult, setCompressResult] = useState<CompressionResult | null>(null);
+
+  // Rotate-specific state
+  const [rotation, setRotation] = useState<RotationAngle>(90);
+
+  // Watermark-specific state
+  const [watermarkText, setWatermarkText] = useState("CONFIDENTIAL");
+  const [watermarkOpacity, setWatermarkOpacity] = useState(0.3);
+
+  // Delete pages-specific state
+  const [pagesToDelete, setPagesToDelete] = useState("");
+
+  // Result blob for download
+  const [resultBlob, setResultBlob] = useState<Blob | null>(null);
 
   // AI-specific state
   const [summary, setSummary] = useState<string>("");
@@ -55,9 +108,207 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
     }
   };
 
+  // ==========================================
+  // CLIENT-SIDE PROCESSING HANDLERS
+  // ==========================================
+
+  // Split PDF handler
+  const handleSplitPDF = useCallback(async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      let results: { blob: Blob; name: string }[] = [];
+      switch (splitMode) {
+        case "ranges":
+          if (!pageRanges.trim()) throw new Error("Please enter page ranges");
+          setProgress(30);
+          results = await splitPDFByRanges(file, pageRanges);
+          break;
+        case "extract":
+          if (!pageNumbers.trim()) throw new Error("Please enter page numbers");
+          setProgress(30);
+          results = [await splitExtractPages(file, pageNumbers)];
+          break;
+        case "every":
+          setProgress(30);
+          results = await splitPDFEveryNPages(file, parseInt(everyPages) || 3);
+          break;
+        case "count":
+          setProgress(30);
+          results = await splitPDFIntoNFiles(file, parseInt(fileCount) || 2);
+          break;
+        default:
+          setProgress(30);
+          results = await splitAllPages(file);
+      }
+      setProgress(100);
+      setSplitResults(results);
+      setStatus("success");
+      setOutputFileName(`${results.length} files created`);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to split PDF");
+      setProgress(0);
+    }
+  }, [files, splitMode, pageRanges, pageNumbers, everyPages, fileCount]);
+
+  // Compress PDF handler
+  const handleCompressPDF = useCallback(async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const result = await compressPDF(file, compressionQuality);
+      setProgress(100);
+      setCompressResult(result);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to compress PDF");
+      setProgress(0);
+    }
+  }, [files, compressionQuality]);
+
+  // Rotate PDF handler
+  const handleRotatePDF = useCallback(async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const result = await rotatePDF(file, rotation);
+      setProgress(100);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to rotate PDF");
+      setProgress(0);
+    }
+  }, [files, rotation]);
+
+  // Watermark PDF handler
+  const handleWatermarkPDF = useCallback(async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const result = await addWatermark(file, watermarkText, { opacity: watermarkOpacity });
+      setProgress(100);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to add watermark");
+      setProgress(0);
+    }
+  }, [files, watermarkText, watermarkOpacity]);
+
+  // Delete pages handler
+  const handleDeletePages = useCallback(async () => {
+    if (files.length === 0) return;
+    const file = files[0];
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      if (!pagesToDelete.trim()) throw new Error("Please enter pages to delete");
+      const pageNumbers = pagesToDelete.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p));
+      if (pageNumbers.length === 0) throw new Error("Invalid page numbers");
+      
+      setProgress(30);
+      const result = await deletePages(file, pageNumbers);
+      setProgress(100);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to delete pages");
+      setProgress(0);
+    }
+  }, [files, pagesToDelete]);
+
+  // Images to PDF handler
+  const handleImagesToPDF = useCallback(async () => {
+    if (files.length === 0) return;
+    setStatus("processing");
+    setProgress(10);
+    setErrorMessage("");
+
+    try {
+      setProgress(30);
+      const result = await imagesToPDF(files);
+      setProgress(100);
+      setResultBlob(result.blob);
+      setStatus("success");
+      setOutputFileName(result.name);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to convert images to PDF");
+      setProgress(0);
+    }
+  }, [files]);
+
+  // Download result handler
+  const handleDownloadResult = useCallback(() => {
+    if (resultBlob) {
+      downloadBlob(resultBlob, outputFileName);
+    } else if (compressResult) {
+      downloadBlob(compressResult.blob, compressResult.name);
+    }
+  }, [resultBlob, outputFileName, compressResult]);
+
   const handleProcess = async () => {
     if (files.length === 0) return;
 
+    // Client-side processing tools
+    if (tool.id === "split") {
+      await handleSplitPDF();
+      return;
+    }
+    if (tool.id === "compress") {
+      await handleCompressPDF();
+      return;
+    }
+    if (tool.id === "rotate") {
+      await handleRotatePDF();
+      return;
+    }
+    if (tool.id === "watermark") {
+      await handleWatermarkPDF();
+      return;
+    }
+    if (tool.id === "delete-pages") {
+      await handleDeletePages();
+      return;
+    }
+    if (tool.id === "from-image") {
+      await handleImagesToPDF();
+      return;
+    }
+
+    // Server-side processing for other tools
     setStatus("uploading");
     setProgress(0);
     setErrorMessage("");
@@ -193,6 +444,12 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
     setSummary("");
     setChatMessages([]);
     setFileId("");
+    setSplitResults([]);
+    setCompressResult(null);
+    setResultBlob(null);
+    setPageRanges("");
+    setPageNumbers("");
+    setPagesToDelete("");
   };
 
   const copyToClipboard = async (text: string) => {
@@ -204,56 +461,181 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
   const renderToolOptions = () => {
     switch (tool.id) {
       case "merge":
-        // Merge uses the grid directly, no options panel needed
         return null;
+      
+      case "compress":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Choose compression level:</h3>
+            <div className="space-y-2">
+              {[
+                { value: 'low', label: 'Maximum Compression', desc: '~30% reduction' },
+                { value: 'medium', label: 'Recommended ⭐', desc: '~15% reduction' },
+                { value: 'high', label: 'High Quality', desc: '~5% reduction' },
+              ].map((opt) => (
+                <label
+                  key={opt.value}
+                  className={cn(
+                    "flex items-start p-4 border rounded-xl cursor-pointer transition-all",
+                    compressionQuality === opt.value
+                      ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="compression"
+                    value={opt.value}
+                    checked={compressionQuality === opt.value}
+                    onChange={() => setCompressionQuality(opt.value as CompressionQuality)}
+                    className="mt-1"
+                  />
+                  <div className="ml-3">
+                    <span className="font-medium">{opt.label}</span>
+                    <p className="text-sm text-muted-foreground">{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+
       case "split":
         return (
           <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Choose how to split your PDF:
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {["Extract all pages", "By page range", "By page count"].map((opt) => (
-                <Button
-                  key={opt}
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setOptions({ ...options, splitMode: opt })}
+            <h3 className="text-lg font-semibold">Choose how to split your PDF:</h3>
+            <div className="space-y-2">
+              {[
+                { value: 'ranges', label: 'Split by page ranges', desc: 'e.g., 1-3, 5-7', placeholder: '1-3, 5-7, 10-12' },
+                { value: 'extract', label: 'Extract specific pages', desc: 'e.g., 1, 3, 5', placeholder: '1, 3, 5, 7' },
+                { value: 'every', label: 'Split every X pages', desc: 'Create separate files every N pages' },
+                { value: 'count', label: 'Split into X equal files', desc: 'Divide PDF into equal parts' },
+              ].map((opt) => (
+                <label
+                  key={opt.value}
+                  className={cn(
+                    "flex items-start p-4 border rounded-xl cursor-pointer transition-all",
+                    splitMode === opt.value
+                      ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  )}
                 >
-                  {opt}
+                  <input
+                    type="radio"
+                    name="splitMode"
+                    value={opt.value}
+                    checked={splitMode === opt.value}
+                    onChange={() => setSplitMode(opt.value)}
+                    className="mt-1"
+                  />
+                  <div className="ml-3 flex-1">
+                    <span className="font-medium">{opt.label}</span>
+                    <p className="text-sm text-muted-foreground">{opt.desc}</p>
+                    {splitMode === opt.value && opt.placeholder && (
+                      <input
+                        type="text"
+                        placeholder={opt.placeholder}
+                        className="w-full mt-2 p-2 border rounded-lg bg-background"
+                        value={opt.value === 'ranges' ? pageRanges : opt.value === 'extract' ? pageNumbers : ''}
+                        onChange={(e) => {
+                          if (opt.value === 'ranges') setPageRanges(e.target.value);
+                          else if (opt.value === 'extract') setPageNumbers(e.target.value);
+                        }}
+                      />
+                    )}
+                    {splitMode === opt.value && opt.value === 'every' && (
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="3"
+                        className="w-full mt-2 p-2 border rounded-lg bg-background"
+                        value={everyPages}
+                        onChange={(e) => setEveryPages(e.target.value)}
+                      />
+                    )}
+                    {splitMode === opt.value && opt.value === 'count' && (
+                      <input
+                        type="number"
+                        min="2"
+                        placeholder="2"
+                        className="w-full mt-2 p-2 border rounded-lg bg-background"
+                        value={fileCount}
+                        onChange={(e) => setFileCount(e.target.value)}
+                      />
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "rotate":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Choose rotation angle:</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {[90, 180, 270].map((angle) => (
+                <Button
+                  key={angle}
+                  variant={rotation === angle ? "default" : "outline"}
+                  onClick={() => setRotation(angle as RotationAngle)}
+                  className="py-6"
+                >
+                  {angle}°
                 </Button>
               ))}
             </div>
           </div>
         );
+
       case "watermark":
         return (
           <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Watermark Settings:</h3>
             <div>
               <label className="text-sm font-medium">Watermark Text</label>
               <input
                 type="text"
                 className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
                 placeholder="CONFIDENTIAL"
-                onChange={(e) => setOptions({ ...options, watermarkText: e.target.value })}
+                value={watermarkText}
+                onChange={(e) => setWatermarkText(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Opacity: {Math.round(watermarkOpacity * 100)}%</label>
+              <input
+                type="range"
+                min="0.1"
+                max="0.9"
+                step="0.1"
+                className="w-full mt-1"
+                value={watermarkOpacity}
+                onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
               />
             </div>
           </div>
         );
-      case "rotate":
+
+      case "delete-pages":
         return (
-          <div className="grid grid-cols-4 gap-2">
-            {[90, 180, 270, 360].map((angle) => (
-              <Button
-                key={angle}
-                variant={options.rotation === angle ? "default" : "outline"}
-                onClick={() => setOptions({ ...options, rotation: angle })}
-              >
-                {angle}°
-              </Button>
-            ))}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Pages to Delete:</h3>
+            <div>
+              <label className="text-sm font-medium">Enter page numbers (comma-separated)</label>
+              <input
+                type="text"
+                className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
+                placeholder="1, 3, 5-7"
+                value={pagesToDelete}
+                onChange={(e) => setPagesToDelete(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground mt-1">e.g., 1, 3, 5, 7-10</p>
+            </div>
           </div>
         );
+
       case "protect":
         return (
           <div className="space-y-4">
@@ -286,20 +668,6 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
                 <option value="deu">German</option>
                 <option value="spa">Spanish</option>
               </select>
-            </div>
-          </div>
-        );
-      case "delete-pages":
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Pages to delete (e.g., "1,3,5-7")</label>
-              <input
-                type="text"
-                className="w-full mt-1 px-3 py-2 border rounded-lg bg-background"
-                placeholder="1,3,5-7"
-                onChange={(e) => setOptions({ ...options, pagesToDelete: e.target.value })}
-              />
             </div>
           </div>
         );
@@ -479,34 +847,43 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
             />
           )}
 
-          {/* Tool Options - Only for non-merge tools */}
+          {/* Tool Options - Show directly for client-side tools, collapsible for others */}
           {!isMergeTool && status === "idle" && files.length > 0 && renderToolOptions() && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              <button
-                onClick={() => setShowOptions(!showOptions)}
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                Options
-                <ChevronDown
-                  className={cn(
-                    "w-4 h-4 transition-transform",
-                    showOptions && "rotate-180"
-                  )}
-                />
-              </button>
-              {showOptions && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-4 p-4 rounded-xl bg-muted/50"
-                >
+              {/* Show options directly for client-side tools */}
+              {["split", "compress", "rotate", "watermark", "delete-pages"].includes(tool.id) ? (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-500/20">
                   {renderToolOptions()}
-                </motion.div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowOptions(!showOptions)}
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Options
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 transition-transform",
+                        showOptions && "rotate-180"
+                      )}
+                    />
+                  </button>
+                  {showOptions && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="mt-4 p-4 rounded-xl bg-muted/50"
+                    >
+                      {renderToolOptions()}
+                    </motion.div>
+                  )}
+                </>
               )}
             </motion.div>
           )}
@@ -539,8 +916,72 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
             </motion.div>
           )}
 
-          {/* Success & Download */}
-          {status === "success" && summary ? (
+          {/* Success & Download - Client-side tools */}
+          {status === "success" && (resultBlob || compressResult || splitResults.length > 0) ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-8"
+            >
+              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mb-6 animate-pulse-glow">
+                <tool.icon className="w-12 h-12 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">
+                {compressResult ? "Compressed!" : splitResults.length > 0 ? "Split Complete!" : "Done!"}
+              </h2>
+              
+              {/* Show compression stats */}
+              {compressResult && (
+                <div className="max-w-md mx-auto mb-6 p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Original</div>
+                      <div className="text-lg font-semibold">{formatFileSize(compressResult.originalSize)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground">Compressed</div>
+                      <div className="text-lg font-semibold text-green-600">{formatFileSize(compressResult.compressedSize)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm">
+                    <span className="font-medium text-green-600">{compressResult.reduction.toFixed(1)}% smaller</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Show split results count */}
+              {splitResults.length > 0 && (
+                <p className="text-muted-foreground mb-6">
+                  Created {splitResults.length} file{splitResults.length > 1 ? "s" : ""}
+                </p>
+              )}
+
+              {/* Show file name for other tools */}
+              {resultBlob && !compressResult && !splitResults.length && (
+                <p className="text-muted-foreground mb-8">{outputFileName}</p>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  size="lg"
+                  onClick={() => {
+                    if (splitResults.length > 0) {
+                      downloadMultipleAsZip(splitResults, "split_pdfs.zip");
+                    } else {
+                      handleDownloadResult();
+                    }
+                  }}
+                  className="btn-gradient text-white rounded-full px-8 py-6 gap-2"
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </Button>
+                <Button variant="outline" size="lg" onClick={handleReset} className="rounded-full px-8 py-6">
+                  Process Another File
+                </Button>
+              </div>
+            </motion.div>
+          ) : status === "success" && summary ? (
             renderSummaryResult()
           ) : status === "success" && downloadUrl ? (
             <motion.div
