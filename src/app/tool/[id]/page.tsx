@@ -8,6 +8,27 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import ComingSoon from "@/components/ComingSoon";
+
+// Tools that require server-side processing and show Coming Soon
+const COMING_SOON_TOOLS: Record<string, string> = {
+  "pdf-to-word": "Requires advanced document conversion engine",
+  "pdf-to-excel": "Requires advanced data extraction engine",
+  "pdf-to-ppt": "Requires advanced presentation conversion",
+  "word-to-pdf": "Requires server-side document processing",
+  "excel-to-pdf": "Requires server-side spreadsheet processing",
+  "ppt-to-pdf": "Requires server-side presentation processing",
+  "html-to-pdf": "Requires server-side HTML rendering",
+  "ocr": "Requires AI text recognition engine",
+  "compare": "Requires advanced document comparison",
+  "summarize": "Requires AI summarization engine",
+  "chat": "Requires AI chat processing",
+  "unlock": "Requires advanced encryption handling",
+  "sign": "Requires digital signature infrastructure",
+  "redact": "Requires advanced content detection",
+  "crop": "Requires server-side image processing",
+  "organize": "Requires advanced page management",
+};
 
 export default function ToolPage() {
   const params = useParams();
@@ -50,6 +71,20 @@ export default function ToolPage() {
             </Link>
           </motion.div>
         </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show Coming Soon for tools that require server-side processing
+  if (COMING_SOON_TOOLS[toolId]) {
+    return (
+      <div className="min-h-screen relative overflow-hidden">
+        <div className="fixed inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950" />
+        </div>
+        <Header />
+        <ComingSoon toolName={tool.name} reason={COMING_SOON_TOOLS[toolId]} />
         <Footer />
       </div>
     );
