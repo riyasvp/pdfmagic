@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { saveUploadedFile, ensureDirectories } from "@/lib/pdf-processor";
 import { exec } from "child_process";
 import { promisify } from "util";
+import path from "path";
 import ZAI from "z-ai-web-dev-sdk";
 
 const execAsync = promisify(exec);
@@ -49,7 +50,9 @@ export async function POST(request: NextRequest) {
 
     // If we have a fileId but no cached text, extract it
     if (!pdfText && fileId) {
-      const inputPath = `/home/z/my-project/upload/${fileId}`;
+      // Use environment variable for upload directory or default
+      const uploadDir = process.env.UPLOAD_DIR || "upload";
+      const inputPath = path.join(uploadDir, fileId);
       pdfText = await extractPdfText(inputPath);
     }
 

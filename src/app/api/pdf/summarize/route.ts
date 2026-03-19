@@ -6,8 +6,6 @@ import ZAI from "z-ai-web-dev-sdk";
 
 const execAsync = promisify(exec);
 
-const SCRIPTS_DIR = "/home/z/my-project/scripts";
-
 async function extractPdfText(inputPath: string): Promise<string> {
   try {
     const { stdout } = await execAsync(

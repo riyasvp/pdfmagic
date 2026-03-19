@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile, access, unlink } from "fs/promises";
 import { join } from "path";
 
-const DOWNLOAD_DIR = "/home/z/my-project/download";
+// Cross-platform download directory
+const DOWNLOAD_DIR = join(process.cwd(), "download");
 
 export async function GET(
   request: NextRequest,
