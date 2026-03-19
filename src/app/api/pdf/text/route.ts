@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveUploadedFile, executePythonScript, ensureDirectories } from "@/lib/pdf-processor";
+import { basename } from "path";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const outputFileName = (result.output as string).split("/").pop();
+    const outputFileName = basename(result.output as string);
     const downloadUrl = `/api/download/${outputFileName}`;
 
     return NextResponse.json({

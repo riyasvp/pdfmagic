@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { mkdir, writeFile, unlink, access } from "fs/promises";
-import { join } from "path";
+import { join, isAbsolute } from "path";
 import { randomUUID } from "crypto";
 
 const execAsync = promisify(exec);
@@ -53,13 +53,24 @@ export async function executePythonScript(
   args: string[]
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   const scriptPath = join(SCRIPTS_DIR, scriptName);
+  
+  // Set environment variables for Python scripts
+  const env = {
+    ...process.env,
+    DOWNLOAD_DIR: DOWNLOAD_DIR,
+    UPLOAD_DIR: UPLOAD_DIR,
+  };
 
   try {
+    // Escape paths for shell (handle Windows paths with spaces)
+    const escapedArgs = args.map((a) => `"${a.replace(/"/g, '\\"')}"`).join(" ");
+    
     const { stdout, stderr } = await execAsync(
-      `python3 "${scriptPath}" ${args.map((a) => `"${a}"`).join(" ")}`,
+      `python3 "${scriptPath}" ${escapedArgs}`,
       {
         timeout: 120000, // 2 minutes timeout
         maxBuffer: 1024 * 1024 * 50, // 50MB buffer
+        env,
       }
     );
 

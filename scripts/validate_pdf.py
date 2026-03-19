@@ -10,6 +10,12 @@ import os
 import json
 from datetime import datetime
 
+# Get download directory from environment or use default
+DOWNLOAD_DIR = os.environ.get(
+    "DOWNLOAD_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "download"),
+)
+
 try:
     from pypdf import PdfReader
 except ImportError as e:

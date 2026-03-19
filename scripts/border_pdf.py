@@ -19,7 +19,11 @@ except ImportError as e:
     print(json.dumps({"success": False, "error": f"Missing dependency: {str(e)}"}))
     sys.exit(1)
 
-DOWNLOAD_DIR = "/home/z/my-project/download"
+# Get download directory from environment or use default
+DOWNLOAD_DIR = os.environ.get(
+    "DOWNLOAD_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "download"),
+)
 
 
 def add_border_to_pdf(input_path, border_width=10, border_color="#000000", margin=20):

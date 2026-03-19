@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Optimize PDF for web viewing (linearize).
+Optimize PDF for web viewing (linearization).
 Usage: python optimize_pdf.py <input_pdf> [quality]
 quality: low, medium, high (default: medium)
 Output: JSON with result
@@ -17,7 +17,11 @@ except ImportError as e:
     print(json.dumps({"success": False, "error": f"Missing dependency: {str(e)}"}))
     sys.exit(1)
 
-DOWNLOAD_DIR = "/home/z/my-project/download"
+# Get download directory from environment or use default
+DOWNLOAD_DIR = os.environ.get(
+    "DOWNLOAD_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "download"),
+)
 
 
 def optimize_pdf(input_path, quality="medium"):

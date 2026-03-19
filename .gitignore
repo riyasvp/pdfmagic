@@ -57,3 +57,5 @@ run-bun-dev.bat
 test.docx
 todos.json
 tmp/
+
+.vercel
