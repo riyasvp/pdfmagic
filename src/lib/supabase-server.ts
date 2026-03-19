@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
 declare global {
-  // eslint-disable-next-line no-var
   var supabaseServerInstance: ReturnType<typeof createClient> | undefined;
 }
 

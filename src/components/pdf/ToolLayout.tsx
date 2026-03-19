@@ -209,23 +209,22 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
         formData.append("files", file);
       });
 
-      // Add options to formData
+      // Add options (including editType for edit tools) to formData
       Object.entries(options).forEach(([key, value]) => {
         formData.append(key, String(value));
       });
 
+      // Determine the correct endpoint – edit tools use the generic /api/pdf/edit route
+      const endpoint = (tool.id === "watermark" || tool.id === "rotate")
+        ? "/api/pdf/edit"
+        : tool.endpoint;
+
       // Simulate upload progress
       const uploadInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 50) {
-            clearInterval(uploadInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
+        setProgress((prev) => (prev >= 50 ? (clearInterval(uploadInterval), prev) : prev + 10));
       }, 100);
 
-      const response = await fetch(tool.endpoint, {
+      const response = await fetch(endpoint, {
         method: "POST",
         body: formData,
       });
@@ -236,13 +235,7 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
 
       // Simulate processing progress
       const processInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(processInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
+        setProgress((prev) => (prev >= 90 ? (clearInterval(processInterval), prev) : prev + 10));
       }, 200);
 
       const result = await response.json();
@@ -433,6 +426,29 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
                 <strong>Note:</strong> Browser-based compression has limitations. For maximum compression of image-heavy PDFs, consider desktop tools like Adobe Acrobat.
               </p>
             </div>
+          </div>
+        );
+      case "watermark":
+      case "rotate":
+        return (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold">Edit Options</h3>
+            <select
+              className="border rounded p-2 w-full"
+              value={options.editType ?? "watermark"}
+              onChange={(e) => setOptions({ ...options, editType: e.target.value })}
+            >
+              <option value="watermark">Add Watermark</option>
+              <option value="rotate">Rotate PDF</option>
+            </select>
+
+            <FileUpload
+              acceptTypes={tool.acceptTypes}
+              maxFiles={tool.maxFiles}
+              onFilesSelected={handleFilesSelected}
+              isProcessing={status === "uploading"}
+              progress={progress}
+            />
           </div>
         );
       case "split":

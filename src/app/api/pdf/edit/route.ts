@@ -7,6 +7,8 @@ import {
 } from "@/lib/pdf-processor";
 import { uploadToSupabase } from "@/lib/supabase-upload";
 
+import { getUserFromRequest } from "@/lib/supabase-auth";
+
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 const PDF_MIME_TYPE = "application/pdf";
 
@@ -82,10 +84,16 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+    // Get authenticated user
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+    }
 
     const { url: downloadUrl, error: uploadError } = await uploadToSupabase(
       editedPath,
-      editedFileName
+      editedFileName,
+      user.id
     );
 
     if (uploadError) {

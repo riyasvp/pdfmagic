@@ -1,0 +1,28 @@
+# Normalize line endings to LF for consistent cross-platform behavior
+* text=auto
+
+# Keep these files as-is (binary)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.exe binary
+*.dll binary
+*.woff binary
+*.woff2 binary
+
+# Force source files to always use LF
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.tsx.orig binary

@@ -6,17 +6,20 @@ const BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME ?? "pdf-edits";
 
 export async function uploadToSupabase(
   filePath: string,
-  fileName: string
+  fileName: string,
+  userId: string
 ): Promise<SupabaseUploadResponse> {
   try {
     const fileBuffer = await readFile(filePath);
     const uint8Array = new Uint8Array(fileBuffer);
 
+    const fullPath = `${userId}/${fileName}`;
     const { error } = await supabaseServer.storage
       .from(BUCKET_NAME)
-      .upload(fileName, uint8Array, {
+      .upload(fullPath, uint8Array, {
         contentType: "application/pdf",
         upsert: true,
+        metadata: { owner_id: userId },
       });
 
     if (error) {
@@ -25,7 +28,7 @@ export async function uploadToSupabase(
 
     const { data: urlData } = supabaseServer.storage
       .from(BUCKET_NAME)
-      .getPublicUrl(fileName);
+      .getPublicUrl(fullPath);
 
     return { url: urlData.publicUrl, error: null };
   } catch (err) {
