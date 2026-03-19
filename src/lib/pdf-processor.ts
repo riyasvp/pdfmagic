@@ -6,9 +6,9 @@ import { randomUUID } from "crypto";
 
 const execAsync = promisify(exec);
 
-const UPLOAD_DIR = "/home/z/my-project/upload";
-const DOWNLOAD_DIR = "/home/z/my-project/download";
-const SCRIPTS_DIR = "/home/z/my-project/scripts";
+const UPLOAD_DIR = join(process.cwd(), "upload");
+const DOWNLOAD_DIR = join(process.cwd(), "download");
+const SCRIPTS_DIR = join(process.cwd(), "scripts");
 
 // Ensure directories exist
 export async function ensureDirectories() {
