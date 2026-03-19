@@ -19,6 +19,12 @@ export async function POST(request: NextRequest) {
   try {
     await ensureDirectories();
 
+    // Get authenticated user FIRST, before any expensive operations
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("files") as File | null;
     const editType = (formData.get("editType") as string) ?? "watermark";
@@ -83,11 +89,6 @@ export async function POST(request: NextRequest) {
         { success: false, error: "Failed to extract file name from path" },
         { status: 500 }
       );
-    }
-    // Get authenticated user
-    const user = await getUserFromRequest();
-    if (!user) {
-      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
     }
 
     const { url: downloadUrl, error: uploadError } = await uploadToSupabase(

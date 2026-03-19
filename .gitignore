@@ -50,3 +50,10 @@ yarn-error.log*
 
 # Testing
 coverage/
+
+# Local development files
+monitor.cjs
+run-bun-dev.bat
+test.docx
+todos.json
+tmp/

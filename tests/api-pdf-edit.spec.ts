@@ -18,7 +18,7 @@ test.describe('API: POST /api/pdf/edit', () => {
   test('2. POST non-PDF file → expect 400', async ({ request }) => {
     const response = await request.post('/api/pdf/edit', {
       multipart: {
-        file: {
+        files: {
           name: 'test.txt',
           mimeType: 'text/plain',
           buffer: Buffer.from('not a pdf'),
