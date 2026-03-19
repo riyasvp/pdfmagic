@@ -22,3 +22,4 @@ export { SkeletonLoader, ToolCardSkeleton, ProcessingSkeleton } from "./Skeleton
 export { FileSizeEstimator, FileSizeDisplay, SizeComparison } from "./FileSizeEstimator";
 export { TextToSpeechControls } from "./TextToSpeechControls";
 export { KeyboardShortcuts, useKeyboardShortcuts, KbdKey } from "./KeyboardShortcuts";
+export { PresetsManager, QuickPresetsSelector } from "./PresetsManager";
