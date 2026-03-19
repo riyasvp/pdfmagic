@@ -12,8 +12,10 @@ const PDF_MIME_TYPE = "application/pdf";
 
 async function extractPdfText(inputPath: string): Promise<string> {
   try {
+    // Use py -3 on Windows, python3 on Unix
+    const pythonCmd = process.platform === "win32" ? "py -3" : "python3";
     const { stdout } = await execAsync(
-      `python3 -c "
+      `${pythonCmd} -c "
 import sys
 try:
     import pdfplumber

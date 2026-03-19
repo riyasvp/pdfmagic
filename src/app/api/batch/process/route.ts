@@ -65,8 +65,10 @@ export async function POST(request: NextRequest) {
         }
 
         const scriptPath = join(SCRIPTS_DIR, scriptName);
+        // Use py -3 on Windows, python3 on Unix
+        const pythonCmd = process.platform === "win32" ? "py -3" : "python3";
         const { stdout } = await execAsync(
-          `python3 "${scriptPath}" ${args.map((a) => `"${a}"`).join(" ")}`,
+          `${pythonCmd} "${scriptPath}" ${args.map((a) => `"${a}"`).join(" ")}`,
           { timeout: 120000 }
         );
 
