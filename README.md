@@ -15,16 +15,28 @@ A stunning, feature-rich PDF toolkit web application that rivals and exceeds ilo
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **Dark/Light Mode** - Theme toggle with elegant transitions
 - **Framer Motion Animations** - Smooth hover effects and transitions
+- **Tool Search** - Quick search across all tools
+- **Favorites** - Save your most-used tools
+- **Recent Tools** - Quick access to recently used tools
+- **Batch Processing** - Process multiple files at once
+- **Progress Indicators** - Detailed progress for each operation
+- **Share Links** - Generate shareable download links
 
-### 📦 25+ PDF Tools
+### 📦 70+ PDF Tools
 
 | Category | Tools |
 |----------|-------|
-| **PDF Tools** | Merge, Split, Compress, PDF to Word/Excel/PPT/Image |
+| **PDF Tools** | Merge, Split, Compress, PDF to Word/Excel/PPT/Image/Markdown/Text/HTML/XPS/EPUB/PDF-A |
 | **Convert to PDF** | Word, Excel, PPT, Image, HTML to PDF |
-| **PDF Editing** | Watermark, Page Numbers, Rotate, Crop, Delete Pages, Organize |
+| **PDF Editing** | Watermark, Page Numbers, Rotate, Crop, Delete Pages, Organize, Flatten, Add Border |
+| **Extract & Convert** | Extract Images, Extract Pages, Extract Links, Extract Attachments, PDF to Grayscale, PDF to Markdown, PDF to Text, PDF to HTML, PDF to XPS, PDF to EPUB, PDF to PDF/A |
+| **Image & Color** | Change Image Quality, Optimize for Web, CMYK to RGB |
+| **Repair & Optimize** | Repair PDF, Validate PDF, Embed Fonts, Flatten PDF |
+| **Annotations & Links** | Auto Bookmarks, Add Links, Add Page Border |
+| **Metadata & Security** | Change Metadata, Remove Metadata, Set Permissions, Unlock (Brute Force) |
+| **Layout & Imposition** | Impose (N-up), Batch Stamp |
 | **PDF Security** | Protect, Unlock, Sign, Redact |
-| **AI-Powered** | OCR, Compare, Summarize, Chat with PDF |
+| **AI-Powered** | OCR, Compare, Summarize, Chat with PDF, Text to Speech, Translate, Grammar Fix, Key Points, Generate TOC, Smart Extract, Summarize Sections |
 
 ## 🛠️ Tech Stack
 

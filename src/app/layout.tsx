@@ -48,9 +48,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { SessionContextProvider } from '@supabase/auth-helpers-react';
-import { supabaseBrowser } from '@/lib/supabase-auth';
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -70,9 +67,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <SessionContextProvider supabaseClient={supabaseBrowser}>
-          {children}
-        </SessionContextProvider>
+        {children}
         <Toaster />
       </body>
     </html>
