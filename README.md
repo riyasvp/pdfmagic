@@ -269,6 +269,12 @@ PYTHONUNBUFFERED=1
 # File Storage (optional - defaults to local paths)
 # UPLOAD_DIR=/app/upload
 # DOWNLOAD_DIR=/app/download
+
+# Supabase Storage (optional - for cloud storage)
+# NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# SUPABASE_BUCKET_NAME=pdf-edits
 ```
 
 ## 📁 Project Structure
@@ -356,6 +362,95 @@ nixPkgs = ["tesseract", "tesseractBase", "poppler-utils"]
 ```
 
 Or use the Dockerfile approach which includes Tesseract installation.
+
+## ☁️ Supabase Storage Integration
+
+PDFMagic supports Supabase Storage for cloud-based file storage instead of local filesystem.
+
+### Setting Up Supabase Storage
+
+#### Step 1: Create a Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Note your project URL and API keys from **Settings > API**
+
+#### Step 2: Create the Storage Bucket
+
+1. Go to **Storage** in your Supabase dashboard
+2. Click **New bucket**
+3. Configure the bucket:
+   - **Name**: `pdf-edits`
+   - **Public**: Yes (for download URLs)
+   - **File size limit**: 50MB (recommended)
+   - **Allowed MIME types**: `application/pdf`
+
+#### Step 3: Configure RLS Policies
+
+Run these SQL commands in the Supabase SQL Editor:
+
+```sql
+-- Enable public read access to files
+CREATE POLICY "Public Read Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'pdf-edits');
+
+-- Enable authenticated uploads
+CREATE POLICY "Authenticated Uploads" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'pdf-edits'
+    AND auth.role() = 'authenticated'
+  );
+
+-- Enable authenticated deletes
+CREATE POLICY "Authenticated Delete" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'pdf-edits'
+    AND auth.role() = 'authenticated'
+  );
+```
+
+For public uploads (if needed):
+```sql
+CREATE POLICY "Public Uploads" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'pdf-edits'
+    AND auth.role() IN ('authenticated', 'anon')
+  );
+```
+
+#### Step 4: Configure Environment Variables
+
+Set these in your Railway dashboard:
+
+| Variable | Description | Where to Get |
+|----------|-------------|--------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Settings > API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon key | Settings > API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server-only!) | Settings > API |
+| `SUPABASE_BUCKET_NAME` | Storage bucket name | `pdf-edits` |
+
+**Important**: Never expose `SUPABASE_SERVICE_ROLE_KEY` to the client bundle.
+
+#### Step 5: Verify Integration
+
+Test the upload endpoint:
+```bash
+curl -X POST https://your-domain.com/api/pdf/edit \
+  -F "files=@test.pdf" \
+  -F "editType=watermark" \
+  -F "options={\"text\":\"CONFIDENTIAL\"}"
+```
+
+Check your Supabase Storage dashboard to see uploaded files.
+
+### Troubleshooting
+
+**Upload fails with 403 error**
+- Check RLS policies are correctly configured
+- Ensure bucket is set to public or user is authenticated
+
+**Files not appearing in storage**
+- Verify `SUPABASE_BUCKET_NAME` matches your bucket exactly
+- Check Railway environment variables are set correctly
 
 ## 🧪 Testing
 

@@ -4,3 +4,22 @@ builder = "dockerfile"
 [deploy]
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+
+[environment]
+# Supabase Configuration (Required for storage integration)
+# Get these from: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api
+
+# Public keys - exposed to client bundle
+NEXT_PUBLIC_SUPABASE_URL = "{{NEXT_PUBLIC_SUPABASE_URL}}"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "{{NEXT_PUBLIC_SUPABASE_ANON_KEY}}"
+
+# Server-side only - NEVER expose to client
+SUPABASE_SERVICE_ROLE_KEY = "{{SUPABASE_SERVICE_ROLE_KEY}}"
+
+# Storage bucket name
+SUPABASE_BUCKET_NAME = "pdf-edits"
+
+# Application settings
+NODE_ENV = "production"
+PYTHONUNBUFFERED = "1"
+PORT = "3000"

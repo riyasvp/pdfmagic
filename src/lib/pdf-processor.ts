@@ -78,6 +78,10 @@ export async function executePythonScript(
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Python execution error:", errorMessage);
     return { success: false, error: errorMessage };
+  } finally {
+    for (const arg of args) {
+      await cleanupFile(arg);
+    }
   }
 }
 
