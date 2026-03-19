@@ -2,19 +2,47 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FileText, Menu, X, Moon, Sun, Sparkles } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { FileText, Menu, X, Moon, Sun, Sparkles, User, LogOut, History, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading, signOut } = useAuth();
 
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("dark");
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (user?.user_metadata?.name) {
+      return user.user_metadata.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
   };
 
   // Check if we're on the homepage
@@ -78,11 +106,70 @@ export function Header() {
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
 
-            <Link href="/">
-              <Button className="hidden md:flex btn-gradient text-white rounded-full px-6">
-                Get Started
-              </Button>
-            </Link>
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isAuthenticated ? (
+              // User menu when logged in
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage 
+                        src={user?.user_metadata?.avatar_url} 
+                        alt={user?.user_metadata?.name || user?.email || "User"} 
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.user_metadata?.name || user?.email?.split("@")[0] || "User"}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email || ""}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="cursor-pointer">
+                      <History className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              // Login/Signup buttons when not logged in
+              <div className="hidden md:flex items-center gap-2">
+                <Link href="/auth/login">
+                  <Button variant="ghost" className="rounded-full px-4">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button className="btn-gradient text-white rounded-full px-6">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             {/* Mobile Menu Toggle */}
             <Button
@@ -125,11 +212,41 @@ export function Header() {
             >
               Pricing
             </Link>
-            <Link href="/" onClick={() => setIsMenuOpen(false)}>
-              <Button className="btn-gradient text-white rounded-full mt-2 w-full">
-                Get Started
-              </Button>
-            </Link>
+            
+            {isAuthenticated ? (
+              <>
+                <Link 
+                  href="/dashboard" 
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  className="justify-start px-0 text-destructive"
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
+                  <Button className="btn-gradient text-white rounded-full w-full">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </div>
