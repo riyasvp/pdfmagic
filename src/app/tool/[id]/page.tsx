@@ -2,13 +2,13 @@
 
 import { useParams } from "next/navigation";
 import { Header, Footer, ToolLayout } from "@/components/pdf";
+import { AdBanner, AdSidebar, AdInArticle, ToolPageAd } from "@/components/ads/Ads";
 import { getToolById, getCategoryForTool } from "@/lib/tools-config";
 import { FileQuestion } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
-import Head from "next/head";
 
 const BASE_URL = "https://pdfmagic.store";
 
@@ -167,7 +167,7 @@ export default function ToolPage() {
         )}
       </Head>
 
-      <div className="min-h-screen relative overflow-hidden">
+      <div className="min-h-screen relative overflow-hidden pb-20 md:pb-0">
         {/* Animated gradient background */}
         <div className="fixed inset-0 -z-10">
           <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950" />
@@ -176,10 +176,58 @@ export default function ToolPage() {
           <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-pink-400/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
         </div>
 
+        {/* Sticky header ad */}
+        <AdBanner className="hidden md:block" />
+
         <Header />
-        <ToolLayout tool={tool} />
+
+        {/* Main content with sidebar ad on desktop */}
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
+            {/* Main tool area */}
+            <div className="flex-1 min-w-0">
+              {/* Top ad */}
+              <AdInArticle className="mb-4 md:mb-6 lg:hidden" />
+              
+              <ToolLayout tool={tool} />
+              
+              {/* Bottom ad */}
+              <AdInArticle className="mt-6 md:mt-8 lg:hidden" />
+            </div>
+
+            {/* Sidebar ad on desktop */}
+            <div className="hidden lg:block w-[300px] flex-shrink-0">
+              <div className="sticky top-32">
+                <AdSidebar className="mb-6" />
+                
+                {/* Related tools ad placeholder */}
+                <div className="bg-muted/50 rounded-lg border border-border p-4">
+                  <h3 className="font-semibold mb-3">Popular Tools</h3>
+                  <div className="space-y-2">
+                    <Link href="/tool/merge" className="block text-sm text-muted-foreground hover:text-primary">
+                      Merge PDF
+                    </Link>
+                    <Link href="/tool/compress" className="block text-sm text-muted-foreground hover:text-primary">
+                      Compress PDF
+                    </Link>
+                    <Link href="/tool/split" className="block text-sm text-muted-foreground hover:text-primary">
+                      Split PDF
+                    </Link>
+                    <Link href="/tool/pdf-to-word" className="block text-sm text-muted-foreground hover:text-primary">
+                      PDF to Word
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <Footer />
       </div>
     </>
   );
 }
+
+// Need to import Head for the not found page
+import Head from "next/head";
