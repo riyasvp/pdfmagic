@@ -11,13 +11,18 @@ import sys, os, json, datetime, subprocess, traceback
 from pathlib import Path
 
 
+# Get download directory from environment or use default
+def _get_download_dir():
+    return Path(os.environ.get("DOWNLOAD_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "download"))
+
+
 # ----------------------------------------------------------------------
 # Helper: produce a timestamped output filename inside the ./download folder
 # ----------------------------------------------------------------------
 def _output_path():
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     out_name = f"word_to_pdf_{ts}.pdf"
-    return Path.cwd() / "download" / out_name
+    return _get_download_dir() / out_name
 
 
 # ----------------------------------------------------------------------
@@ -46,7 +51,7 @@ def _convert_using_com(input_path: str) -> str:
 # Fallback conversion – LibreOffice (`unoconv` or `soffice`)
 # ----------------------------------------------------------------------
 def _convert_using_libreoffice(input_path: str) -> str:
-    out_dir = Path.cwd() / "download"
+    out_dir = _get_download_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Try unoconv first
