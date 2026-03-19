@@ -15,7 +15,7 @@ const COMING_SOON_TOOLS: Record<string, string> = {
   "pdf-to-word": "Requires advanced document conversion engine",
   "pdf-to-excel": "Requires advanced data extraction engine",
   "pdf-to-ppt": "Requires advanced presentation conversion",
-  "word-to-pdf": "Requires server-side document processing",
+
   "excel-to-pdf": "Requires server-side spreadsheet processing",
   "ppt-to-pdf": "Requires server-side presentation processing",
   "html-to-pdf": "Requires server-side HTML rendering",
