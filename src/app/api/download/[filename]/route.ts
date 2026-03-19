@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, access, unlink } from "fs/promises";
-import { join } from "path";
+import { join, resolve, normalize } from "path";
+import { validateDownloadFilename, addSecurityHeaders } from "@/lib/security";
 
 // Cross-platform download directory
 const DOWNLOAD_DIR = join(process.cwd(), "download");
+
+// Allowed file extensions for downloads
+const ALLOWED_EXTENSIONS = new Set([
+  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+  "png", "jpg", "jpeg", "gif", "zip"
+]);
 
 export async function GET(
   request: NextRequest,
@@ -11,20 +18,53 @@ export async function GET(
 ) {
   try {
     const { filename } = await params;
-    const filePath = join(DOWNLOAD_DIR, filename);
+
+    // Validate and sanitize the filename
+    if (!filename || filename.length > 255) {
+      const errorResponse = NextResponse.json(
+        { error: "Invalid filename" },
+        { status: 400 }
+      );
+      return addSecurityHeaders(errorResponse);
+    }
+
+    // Validate filename to prevent path traversal
+    const validatedPath = validateDownloadFilename(filename, DOWNLOAD_DIR);
+    
+    if (!validatedPath) {
+      const errorResponse = NextResponse.json(
+        { error: "Invalid filename" },
+        { status: 400 }
+      );
+      return addSecurityHeaders(errorResponse);
+    }
 
     // Check if file exists
     try {
-      await access(filePath);
+      await access(validatedPath);
     } catch {
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
+      const errorResponse = NextResponse.json(
+        { error: "File not found" },
+        { status: 404 }
+      );
+      return addSecurityHeaders(errorResponse);
     }
 
     // Read file
-    const fileBuffer = await readFile(filePath);
+    const fileBuffer = await readFile(validatedPath);
 
     // Determine content type
     const ext = filename.split(".").pop()?.toLowerCase() || "";
+    
+    // Validate extension
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      const errorResponse = NextResponse.json(
+        { error: "File type not allowed" },
+        { status: 403 }
+      );
+      return addSecurityHeaders(errorResponse);
+    }
+
     const contentTypes: Record<string, string> = {
       pdf: "application/pdf",
       doc: "application/msword",
@@ -45,26 +85,32 @@ export async function GET(
     // Schedule file cleanup after response
     setTimeout(async () => {
       try {
-        await unlink(filePath);
-        console.log("Cleaned up file:", filePath);
+        await unlink(validatedPath);
+        console.log("Cleaned up file:", validatedPath);
       } catch (error) {
         console.error("Failed to cleanup file:", error);
       }
     }, 60000); // Clean up after 1 minute
 
-    // Return file
-    return new NextResponse(fileBuffer, {
+    // Return file with security headers
+    const response = new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
         "Content-Length": String(fileBuffer.length),
+        "Cache-Control": "private, no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
       },
     });
+
+    return addSecurityHeaders(response);
   } catch (error) {
     console.error("Download error:", error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { error: "Failed to download file" },
       { status: 500 }
     );
+    return addSecurityHeaders(errorResponse);
   }
 }

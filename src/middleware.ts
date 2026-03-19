@@ -7,6 +7,17 @@ const protectedRoutes = ['/dashboard', '/settings', '/favorites'];
 // Routes that should redirect to dashboard if authenticated
 const authRoutes = ['/auth/login', '/auth/signup'];
 
+// Security headers
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'X-DNS-Prefetch-Control': 'on',
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+};
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -16,6 +27,11 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
+
+  // Add security headers
+  for (const [key, value] of Object.entries(securityHeaders)) {
+    response.headers.set(key, value);
+  }
 
   // Check if Supabase is configured
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
