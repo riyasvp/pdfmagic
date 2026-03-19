@@ -1,0 +1,211 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "download": "Download",
+    "upload": "Upload",
+    "selectFile": "Select File",
+    "dragDrop": "Drag and drop your file here",
+    "orBrowse": "or browse to upload",
+    "processing": "Processing...",
+    "done": "Done",
+    "retry": "Retry",
+    "learnMore": "Learn More",
+    "getStarted": "Get Started",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "welcome": "Welcome",
+    "home": "Home",
+    "settings": "Settings",
+    "watchDemo": "Watch Demo"
+  },
+  "nav": {
+    "allTools": "All Tools",
+    "features": "Features",
+    "pricing": "Pricing",
+    "dashboard": "Dashboard",
+    "history": "History",
+    "support": "Support",
+    "contact": "Contact"
+  },
+  "hero": {
+    "title": "Free Online PDF Tools",
+    "subtitle": "Merge, split, compress, convert, and edit PDFs with ease. 60+ free tools. Fast, secure, and completely free.",
+    "cta": "Start Free Now",
+    "noSignup": "No signup required"
+  },
+  "tools": {
+    "title": "All PDF Tools",
+    "subtitle": "Powerful PDF tools to handle any task",
+    "categories": {
+      "merge": "Merge",
+      "split": "Split",
+      "compress": "Compress",
+      "convert": "Convert",
+      "edit": "Edit",
+      "security": "Security",
+      "extract": "Extract",
+      "other": "Other"
+    },
+    "searchPlaceholder": "Search tools...",
+    "noResults": "No tools found",
+    "popular": "Popular",
+    "recent": "Recent"
+  },
+  "upload": {
+    "title": "Upload your PDF",
+    "subtitle": "Drag and drop or click to upload",
+    "maxSize": "Maximum file size: {size}",
+    "supported": "Supported formats: PDF",
+    "uploading": "Uploading...",
+    "uploaded": "File uploaded successfully",
+    "uploadError": "Upload failed. Please try again."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "resetPasswordSent": "Password reset email sent!",
+    "createAccount": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "orContinueWith": "Or continue with",
+    "signInWithGoogle": "Continue with Google",
+    "signUpWithGoogle": "Sign up with Google",
+    "termsAgree": "By signing up, you agree to our",
+    "termsOfService": "Terms of Service",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy",
+    "invalidEmail": "Please enter a valid email",
+    "passwordMinLength": "Password must be at least 8 characters",
+    "passwordMismatch": "Passwords do not match",
+    "signInSuccess": "Signed in successfully",
+    "signUpSuccess": "Account created successfully",
+    "signOutSuccess": "Signed out successfully",
+    "authError": "Authentication failed"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "recentFiles": "Recent Files",
+    "favorites": "Favorites",
+    "statistics": "Statistics",
+    "filesProcessed": "Files Processed",
+    "toolsUsed": "Tools Used",
+    "storageUsed": "Storage Used",
+    "noRecentFiles": "No recent files"
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "Choose the plan that works for you",
+    "free": "Free",
+    "pro": "Pro",
+    "enterprise": "Enterprise",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "savePercent": "Save {percent}%",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "features": {
+      "filesPerDay": "{count} files/day",
+      "unlimited": "Unlimited",
+      "allTools": "All Tools",
+      "noAds": "No Ads",
+      "priority": "Priority Support",
+      "apiAccess": "API Access",
+      "customBranding": "Custom Branding",
+      "teamMembers": "{count} Team Members"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "payment": "How do I pay?",
+      "paymentAnswer": "We accept all major credit cards and PayPal. Payments are processed securely through Stripe.",
+      "refund": "Can I get a refund?",
+      "refundAnswer": "Yes, we offer a 30-day money-back guarantee if you're not satisfied with our service.",
+      "cancel": "Can I cancel anytime?",
+      "cancelAnswer": "Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period."
+    }
+  },
+  "features": {
+    "title": "Features",
+    "fast": {
+      "title": "Lightning Fast",
+      "description": "Process your PDFs in seconds with our optimized servers"
+    },
+    "secure": {
+      "title": "Secure & Private",
+      "description": "Your files are encrypted and automatically deleted after processing"
+    },
+    "free": {
+      "title": "100% Free",
+      "description": "All tools are completely free to use, no hidden fees"
+    },
+    "noSignup": {
+      "title": "No Signup Required",
+      "description": "Start using our tools immediately without creating an account"
+    },
+    "everywhere": {
+      "title": "Works Everywhere",
+      "description": "Access from any device - desktop, tablet, or mobile browser"
+    },
+    "ai": {
+      "title": "AI Powered",
+      "description": "Advanced algorithms ensure the best quality output every time"
+    },
+    "users": {
+      "label": "Users worldwide"
+    },
+    "files": {
+      "label": "Files processed"
+    },
+    "rating": {
+      "label": "User rating"
+    },
+    "countries": {
+      "label": "Countries"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "fileTooLarge": "File is too large. Maximum size is {size}.",
+    "invalidFile": "Invalid file type. Please upload a PDF.",
+    "processing": "Processing error. Please try again.",
+    "rateLimit": "Too many requests. Please wait a moment."
+  },
+  "footer": {
+    "tagline": "Free online PDF tools for everyone",
+    "quickLinks": "Quick Links",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "copyright": "© {year} PDFMagic. All rights reserved."
+  },
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "pt": "Portuguese",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "ar": "Arabic"
+  }
+}

@@ -5,37 +5,39 @@ import { Sparkles, Zap, Shield, Globe, ArrowRight, Star, Users, FileCheck } from
 import { Button } from "@/components/ui/button";
 import { Header, Footer, CategorySection, ToolCard, MobileNav } from "@/components/pdf";
 import { toolCategories, getPopularTools } from "@/lib/tools-config";
+import { useTranslations } from "@/components/i18n";
 
 export default function HomePage() {
+  const { t } = useTranslations();
   const popularTools = getPopularTools();
 
   const stats = [
-    { icon: Users, value: "10M+", label: "Users worldwide" },
-    { icon: FileCheck, value: "500M+", label: "Files processed" },
-    { icon: Star, value: "4.9/5", label: "User rating" },
-    { icon: Globe, value: "150+", label: "Countries" },
+    { icon: Users, value: "10M+", label: t("features.users.label", { count: "10M+" }) },
+    { icon: FileCheck, value: "500M+", label: t("features.files.label", { count: "500M+" }) },
+    { icon: Star, value: "4.9/5", label: t("features.rating.label") },
+    { icon: Globe, value: "150+", label: t("features.countries.label") },
   ];
 
   const features = [
     {
       icon: Zap,
-      title: "Lightning Fast",
-      description: "Process your PDFs in seconds with our optimized cloud infrastructure",
+      title: t("features.fast.title"),
+      description: t("features.fast.description"),
     },
     {
       icon: Shield,
-      title: "Secure & Private",
-      description: "Your files are encrypted and automatically deleted after processing",
+      title: t("features.secure.title"),
+      description: t("features.secure.description"),
     },
     {
       icon: Globe,
-      title: "Works Everywhere",
-      description: "Access from any device - desktop, tablet, or mobile browser",
+      title: t("features.everywhere.title"),
+      description: t("features.everywhere.description"),
     },
     {
       icon: Sparkles,
-      title: "AI Powered",
-      description: "Advanced algorithms ensure the best quality output every time",
+      title: t("features.ai.title"),
+      description: t("features.ai.description"),
     },
   ];
 
@@ -74,12 +76,11 @@ export default function HomePage() {
             </motion.div>
 
             <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight">
-              Every PDF Tool You Need{" "}
-              <span className="gradient-text">In One Place</span>
+              {t("hero.title")}
             </h1>
 
             <p className="text-base md:text-lg lg:text-xl text-muted-foreground mb-6 md:mb-8 max-w-2xl mx-auto px-2">
-              Merge, split, compress, convert, and edit PDFs with ease. Fast, secure, and completely free online PDF tools.
+              {t("hero.subtitle")}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 px-4">
@@ -88,7 +89,7 @@ export default function HomePage() {
                 className="btn-gradient text-white rounded-full px-6 md:px-8 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg shadow-violet-500/25 w-full sm:w-auto"
                 onClick={() => document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" })}
               >
-                Explore All Tools
+                {t("hero.cta")}
                 <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
               </Button>
               <Button
@@ -96,7 +97,7 @@ export default function HomePage() {
                 size="lg"
                 className="rounded-full px-6 md:px-8 py-4 md:py-6 text-base md:text-lg w-full sm:w-auto"
               >
-                Watch Demo
+                {t("common.watchDemo")}
               </Button>
             </div>
           </motion.div>

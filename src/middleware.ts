@@ -1,4 +1,4 @@
-import { createServerClient, createBrowserClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Routes that require authentication
@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
   });
 
   // Get session
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
   // Handle protected routes
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));

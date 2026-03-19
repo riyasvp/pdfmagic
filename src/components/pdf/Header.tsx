@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, Menu, X, Moon, Sun, Sparkles, User, LogOut, History, Settings, Loader2 } from "lucide-react";
+import { FileText, Menu, X, Moon, Sun, Sparkles, LogOut, History, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { LanguageSwitcher } from "@/components/i18n";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -105,6 +106,10 @@ export function Header() {
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
+
+            <div className="hidden md:block">
+              <LanguageSwitcher />
+            </div>
 
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />

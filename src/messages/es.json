@@ -1,0 +1,190 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "download": "Descargar",
+    "upload": "Subir",
+    "selectFile": "Seleccionar archivo",
+    "dragDrop": "Arrastra y suelta tu archivo aquí",
+    "orBrowse": "o navega para subir",
+    "processing": "Procesando...",
+    "done": "Hecho",
+    "retry": "Reintentar",
+    "learnMore": "Más información",
+    "getStarted": "Comenzar",
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse",
+    "signOut": "Cerrar sesión",
+    "welcome": "Bienvenido",
+    "home": "Inicio",
+    "settings": "Configuración"
+  },
+  "nav": {
+    "allTools": "Todas las herramientas",
+    "features": "Características",
+    "pricing": "Precios",
+    "dashboard": "Panel",
+    "history": "Historial",
+    "support": "Soporte",
+    "contact": "Contacto"
+  },
+  "hero": {
+    "title": "Herramientas gratuitas de PDF en línea",
+    "subtitle": "Fusiona, divide, comprime, convierte y edita PDFs con facilidad. 60+ herramientas gratuitas. Rápido, seguro y completamente gratis.",
+    "cta": "Empezar ahora gratis",
+    "noSignup": "Sin registro requerido"
+  },
+  "tools": {
+    "title": "Todas las herramientas PDF",
+    "subtitle": "Potentes herramientas PDF para cualquier tarea",
+    "categories": {
+      "merge": "Fusionar",
+      "split": "Dividir",
+      "compress": "Comprimir",
+      "convert": "Convertir",
+      "edit": "Editar",
+      "security": "Seguridad",
+      "extract": "Extraer",
+      "other": "Otros"
+    },
+    "searchPlaceholder": "Buscar herramientas...",
+    "noResults": "No se encontraron herramientas",
+    "popular": "Popular",
+    "recent": "Reciente"
+  },
+  "upload": {
+    "title": "Sube tu PDF",
+    "subtitle": "Arrastra y suelta o haz clic para subir",
+    "maxSize": "Tamaño máximo: {size}",
+    "supported": "Formatos compatibles: PDF",
+    "uploading": "Subiendo...",
+    "uploaded": "Archivo subido exitosamente",
+    "uploadError": "Error al subir. Por favor intenta de nuevo."
+  },
+  "auth": {
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "resetPassword": "Restablecer contraseña",
+    "resetPasswordSent": "¡Correo de restablecimiento enviado!",
+    "createAccount": "Crear cuenta",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "dontHaveAccount": "¿No tienes una cuenta?",
+    "orContinueWith": "O continúa con",
+    "signInWithGoogle": "Continuar con Google",
+    "signUpWithGoogle": "Registrarse con Google",
+    "termsAgree": "Al registrarte, aceptas nuestros",
+    "termsOfService": "Términos de servicio",
+    "and": "y",
+    "privacyPolicy": "Política de privacidad",
+    "invalidEmail": "Por favor ingresa un correo válido",
+    "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "signInSuccess": "Sesión iniciada exitosamente",
+    "signUpSuccess": "Cuenta creada exitosamente",
+    "signOutSuccess": "Sesión cerrada exitosamente",
+    "authError": "Error de autenticación"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "recentFiles": "Archivos recientes",
+    "favorites": "Favoritos",
+    "statistics": "Estadísticas",
+    "filesProcessed": "Archivos procesados",
+    "toolsUsed": "Herramientas usadas",
+    "storageUsed": "Almacenamiento usado",
+    "noRecentFiles": "Sin archivos recientes"
+  },
+  "pricing": {
+    "title": "Precios simples y transparentes",
+    "subtitle": "Elige el plan que funcione para ti",
+    "free": "Gratis",
+    "pro": "Pro",
+    "enterprise": "Empresa",
+    "perMonth": "/mes",
+    "perYear": "/año",
+    "savePercent": "Ahorra {percent}%",
+    "currentPlan": "Plan actual",
+    "upgrade": "Mejorar",
+    "downgrade": "Reducir",
+    "features": {
+      "filesPerDay": "{count} archivos/día",
+      "unlimited": "Ilimitado",
+      "allTools": "Todas las herramientas",
+      "noAds": "Sin anuncios",
+      "priority": "Soporte prioritario",
+      "apiAccess": "Acceso API",
+      "customBranding": "Marca personalizada",
+      "teamMembers": "{count} miembros del equipo"
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "payment": "¿Cómo pago?",
+      "paymentAnswer": "Aceptamos todas las tarjetas de crédito principales y PayPal. Los pagos se procesan de forma segura a través de Stripe.",
+      "refund": "¿Puedo obtener un reembolso?",
+      "refundAnswer": "Sí, ofrecemos una garantía de devolución de dinero de 30 días si no estás satisfecho con nuestro servicio.",
+      "cancel": "¿Puedo cancelar en cualquier momento?",
+      "cancelAnswer": "Sí, puedes cancelar tu suscripción en cualquier momento. Seguirás teniendo acceso hasta el final de tu período de facturación."
+    }
+  },
+  "features": {
+    "title": "Características",
+    "fast": {
+      "title": "Ultra rápido",
+      "description": "Procesa tus PDFs en segundos con nuestros servidores optimizados"
+    },
+    "secure": {
+      "title": "Seguro y privado",
+      "description": "Tus archivos están encriptados y se eliminan automáticamente después del procesamiento"
+    },
+    "free": {
+      "title": "100% Gratis",
+      "description": "Todas las herramientas son completamente gratuitas, sin cargos ocultos"
+    },
+    "noSignup": {
+      "title": "Sin registro requerido",
+      "description": "Comienza a usar nuestras herramientas inmediatamente sin crear una cuenta"
+    }
+  },
+  "errors": {
+    "generic": "Algo salió mal. Por favor intenta de nuevo.",
+    "network": "Error de red. Por favor verifica tu conexión.",
+    "fileTooLarge": "El archivo es muy grande. El tamaño máximo es {size}.",
+    "invalidFile": "Tipo de archivo inválido. Por favor sube un PDF.",
+    "processing": "Error de procesamiento. Por favor intenta de nuevo.",
+    "rateLimit": "Demasiadas solicitudes. Por favor espera un momento."
+  },
+  "footer": {
+    "tagline": "Herramientas PDF gratuitas en línea para todos",
+    "quickLinks": "Enlaces rápidos",
+    "legal": "Legal",
+    "privacy": "Política de privacidad",
+    "terms": "Términos de servicio",
+    "copyright": "© {year} PDFMagic. Todos los derechos reservados."
+  },
+  "language": {
+    "select": "Idioma",
+    "en": "Inglés",
+    "es": "Español",
+    "fr": "Francés",
+    "de": "Alemán",
+    "pt": "Portugués",
+    "zh": "Chino",
+    "ja": "Japonés",
+    "ko": "Coreano",
+    "ar": "Árabe"
+  }
+}
