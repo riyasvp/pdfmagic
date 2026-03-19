@@ -14,14 +14,52 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const BASE_URL = "https://pdfmagic.store";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(BASE_URL),
   title: {
     default: "PDFMagic - Free Online PDF Tools",
-    template: "%s - PDFMagic"
+    template: "%s | PDFMagic",
+    absolute: "PDFMagic - Free Online PDF Tools",
   },
-  description: "Merge, split, compress, convert, and edit PDFs with ease. Fast, secure, and completely free online PDF tools.",
-  keywords: ["PDF", "merge PDF", "split PDF", "compress PDF", "convert PDF", "PDF editor", "free PDF tools"],
-  authors: [{ name: "PDFMagic" }],
+  description: "Merge, split, compress, convert, and edit PDFs with ease. 60+ free online PDF tools. Fast, secure, and completely free. No signup required.",
+  keywords: [
+    "PDF tools",
+    "merge PDF",
+    "split PDF",
+    "compress PDF",
+    "convert PDF to Word",
+    "convert PDF to Excel",
+    "PDF to Image",
+    "PDF editor",
+    "free PDF tools",
+    "online PDF tools",
+    "PDF merger",
+    "PDF splitter",
+    "PDF compressor",
+    "OCR PDF",
+    "watermark PDF",
+    "rotate PDF",
+    "delete PDF pages",
+    "protect PDF",
+    "PDF to text",
+    "PDF to Markdown",
+  ],
+  authors: [{ name: "PDFMagic", url: BASE_URL }],
+  creator: "PDFMagic",
+  publisher: "PDFMagic",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -30,21 +68,67 @@ export const metadata: Metadata = {
     apple: [
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
+    shortcut: "/favicon.svg",
   },
   openGraph: {
-    title: "PDFMagic - Free Online PDF Tools",
-    description: "Merge, split, compress, convert, and edit PDFs with ease. Fast, secure, and completely free online PDF tools.",
-    url: "https://pdfmagic.store",
-    siteName: "PDFMagic",
     type: "website",
+    locale: "en_US",
+    url: BASE_URL,
+    siteName: "PDFMagic",
+    title: "PDFMagic - Free Online PDF Tools",
+    description: "Merge, split, compress, convert, and edit PDFs with ease. 60+ free online PDF tools. Fast, secure, and completely free.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "PDFMagic - Free Online PDF Tools",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    site: "@pdfmagic",
+    creator: "@pdfmagic",
     title: "PDFMagic - Free Online PDF Tools",
-    description: "Merge, split, compress, convert, and edit PDFs with ease.",
+    description: "60+ free online PDF tools. Merge, split, compress, convert, and edit PDFs instantly.",
+    images: ["/og-image.png"],
   },
   other: {
     "google-adsense-account": "ca-pub-6819535548939423",
+    "theme-color": "#7c3aed",
+  },
+};
+
+// JSON-LD Structured Data for the homepage
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "PDFMagic",
+  url: BASE_URL,
+  description: "Free online PDF tools. Merge, split, compress, convert, and edit PDFs with ease.",
+  publisher: {
+    "@type": "Organization",
+    name: "PDFMagic",
+    url: BASE_URL,
+    logo: {
+      "@type": "ImageObject",
+      url: `${BASE_URL}/favicon.svg`,
+    },
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${BASE_URL}/?search={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    description: "Free to use all PDF tools",
   },
 };
 
@@ -56,6 +140,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+
         {/* Google AdSense */}
         <Script
           async
@@ -63,6 +153,21 @@ export default function RootLayout({
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
+
+        {/* Google Analytics 4 */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-PDFMAGICID"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-PDFMAGICID');
+          `}
+        </Script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
