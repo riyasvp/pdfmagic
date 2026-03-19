@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Sparkles, Zap, Shield, Globe, ArrowRight, Star, Users, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Header, Footer, CategorySection, ToolCard } from "@/components/pdf";
+import { Header, Footer, CategorySection, ToolCard, MobileNav } from "@/components/pdf";
 import { toolCategories, getPopularTools } from "@/lib/tools-config";
 
 export default function HomePage() {
@@ -40,7 +40,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden pb-20 md:pb-0">
       {/* Animated gradient background */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950" />
@@ -54,7 +54,7 @@ export default function HomePage() {
 
       <main className="pt-24">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 py-16 md:py-24">
+        <section className="container mx-auto px-4 py-12 md:py-24">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -65,36 +65,36 @@ export default function HomePage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/10 to-pink-500/10 border border-violet-500/20 mb-6"
+              className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-gradient-to-r from-violet-500/10 to-pink-500/10 border border-violet-500/20 mb-4 md:mb-6"
             >
-              <Sparkles className="w-4 h-4 text-violet-500" />
-              <span className="text-sm font-medium text-violet-600 dark:text-violet-400">
+              <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-violet-500" />
+              <span className="text-xs md:text-sm font-medium text-violet-600 dark:text-violet-400">
                 Trusted by 10 million users worldwide
               </span>
             </motion.div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight">
               Every PDF Tool You Need{" "}
               <span className="gradient-text">In One Place</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground mb-6 md:mb-8 max-w-2xl mx-auto px-2">
               Merge, split, compress, convert, and edit PDFs with ease. Fast, secure, and completely free online PDF tools.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 px-4">
               <Button
                 size="lg"
-                className="btn-gradient text-white rounded-full px-8 py-6 text-lg font-semibold shadow-lg shadow-violet-500/25"
+                className="btn-gradient text-white rounded-full px-6 md:px-8 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg shadow-violet-500/25 w-full sm:w-auto"
                 onClick={() => document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" })}
               >
                 Explore All Tools
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-full px-8 py-6 text-lg"
+                className="rounded-full px-6 md:px-8 py-4 md:py-6 text-base md:text-lg w-full sm:w-auto"
               >
                 Watch Demo
               </Button>
@@ -106,7 +106,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mt-16 max-w-4xl mx-auto"
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-8 mt-12 md:mt-16 max-w-4xl mx-auto px-2"
           >
             {stats.map((stat, index) => (
               <motion.div
@@ -114,13 +114,13 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 + index * 0.1 }}
-                className="text-center p-4 rounded-2xl glass-card"
+                className="text-center p-3 md:p-4 rounded-xl md:rounded-2xl glass-card"
               >
-                <stat.icon className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <div className="text-2xl md:text-3xl font-bold gradient-text">
+                <stat.icon className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-primary" />
+                <div className="text-lg md:text-2xl lg:text-3xl font-bold gradient-text">
                   {stat.value}
                 </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -132,9 +132,9 @@ export default function HomePage() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mb-8"
+            className="text-center mb-6 md:mb-8"
           >
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-2">
               Most Popular Tools
             </h2>
             <p className="text-muted-foreground">
@@ -142,7 +142,7 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {popularTools.map((tool, index) => (
               <ToolCard key={tool.id} {...tool} index={index} />
             ))}
@@ -157,14 +157,14 @@ export default function HomePage() {
         </section>
 
         {/* Features Section */}
-        <section className="container mx-auto px-4 py-16">
+        <section className="container mx-auto px-4 py-12 md:py-16">
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-8 md:mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
               Why Choose PDFMagic?
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -172,7 +172,7 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
@@ -180,13 +180,13 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="glass-card rounded-2xl p-6 text-center"
+                className="glass-card rounded-xl md:rounded-2xl p-4 md:p-6 text-center"
               >
-                <div className="w-14 h-14 mx-auto rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4">
-                  <feature.icon className="w-7 h-7 text-white" />
+                <div className="w-12 h-12 md:w-14 md:h-14 mx-auto rounded-lg md:rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-3 md:mb-4">
+                  <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{feature.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {feature.description}
                 </p>
               </motion.div>
@@ -195,29 +195,29 @@ export default function HomePage() {
         </section>
 
         {/* CTA Section */}
-        <section className="container mx-auto px-4 py-16">
+        <section className="container mx-auto px-4 py-12 md:py-16">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 p-8 md:p-12 text-center text-white"
+            className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 p-6 md:p-10 lg:p-12 text-center text-white"
           >
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
                 Ready to Transform Your PDFs?
               </h2>
-              <p className="text-white/80 mb-8 max-w-2xl mx-auto">
+              <p className="text-white/80 mb-6 md:mb-8 max-w-2xl mx-auto text-sm md:text-base">
                 Join millions of users who trust PDFMagic for all their PDF needs. No signup required!
               </p>
               <Button
                 size="lg"
                 variant="secondary"
-                className="rounded-full px-8 py-6 text-lg font-semibold bg-white text-violet-600 hover:bg-white/90"
+                className="rounded-full px-6 md:px-8 py-4 md:py-6 text-base md:text-lg font-semibold bg-white text-violet-600 hover:bg-white/90 w-full sm:w-auto"
                 onClick={() => document.getElementById("tools")?.scrollIntoView({ behavior: "smooth" })}
               >
                 Start Now - It&apos;s Free
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
               </Button>
             </div>
           </motion.div>
@@ -225,6 +225,7 @@ export default function HomePage() {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 }

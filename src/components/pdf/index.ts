@@ -1,5 +1,6 @@
 export { Header } from "./Header";
 export { Footer } from "./Footer";
+export { MobileNav } from "./MobileNav";
 export { ToolCard } from "./ToolCard";
 export { FileUpload } from "./FileUpload";
 export { ProcessingStatus } from "./ProcessingStatus";
