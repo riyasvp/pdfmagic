@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveUploadedFile, ensureDirectories } from "@/lib/pdf-processor";
+import { saveUploadedFile, ensureDirectories, cleanupFile } from "@/lib/pdf-processor";
 import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 import ZAI from "z-ai-web-dev-sdk";
 
 const execAsync = promisify(exec);
@@ -34,6 +35,12 @@ except Exception as e:
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Auth check FIRST
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+    }
+
     await ensureDirectories();
 
     const body = await request.json();

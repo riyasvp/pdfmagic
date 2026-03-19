@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveUploadedFile, ensureDirectories } from "@/lib/pdf-processor";
+import { saveUploadedFile, ensureDirectories, cleanupFile } from "@/lib/pdf-processor";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 import ZAI from "z-ai-web-dev-sdk";
 
 const execAsync = promisify(exec);
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const PDF_MIME_TYPE = "application/pdf";
 
 async function extractPdfText(inputPath: string): Promise<string> {
   try {
@@ -32,7 +36,15 @@ except Exception as e:
 }
 
 export async function POST(request: NextRequest) {
+  let localPath: string | null = null;
+
   try {
+    // 1. Auth check FIRST
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+    }
+
     await ensureDirectories();
 
     const formData = await request.formData();
@@ -48,18 +60,25 @@ export async function POST(request: NextRequest) {
     const file = files[0];
 
     // Validate file is PDF
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+    if (file.type !== PDF_MIME_TYPE && !file.name.toLowerCase().endsWith(".pdf")) {
       return NextResponse.json(
         { success: false, error: "File must be PDF format" },
         { status: 400 }
       );
     }
 
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { success: false, error: "File too large (max 50MB)" },
+        { status: 400 }
+      );
+    }
+
     // Save uploaded file
-    const inputPath = await saveUploadedFile(file);
+    localPath = await saveUploadedFile(file);
 
     // Extract text from PDF
-    const pdfText = await extractPdfText(inputPath);
+    const pdfText = await extractPdfText(localPath);
 
     if (!pdfText || pdfText.length < 50) {
       return NextResponse.json(
@@ -106,5 +125,7 @@ Keep the summary concise but informative. Focus on the most important informatio
       { success: false, error: "Failed to process request" },
       { status: 500 }
     );
+  } finally {
+    if (localPath) await cleanupFile(localPath);
   }
 }

@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Sign PDF document.
-Usage: python sign_pdf.py <input_pdf> <signature_image> [page] [x] [y] [width] [height]
+Usage: python sign_pdf.py <input_pdf> <signature_text_or_image> <page> <x> <y> <width> <height>
+       - signature_text_or_image: Path to signature image OR text for text signature
+       - page: Page number (default: 1)
+       - x, y: Position coordinates (optional, defaults to bottom-right)
+       - width, height: Size of signature (optional)
 Output: JSON with result
 """
 
@@ -28,17 +32,14 @@ DOWNLOAD_DIR = os.environ.get(
 
 
 def sign_pdf(
-    input_path, signature_path, page_num=1, x=None, y=None, width=150, height=50
+    input_path, signature_path, page_num=1, x=None, y=None, width=200, height=50
 ):
-    """Add signature image to PDF."""
+    """Add signature (text or image) to PDF."""
     if not os.path.exists(input_path):
         return {"success": False, "error": f"PDF file not found: {input_path}"}
 
-    if not os.path.exists(signature_path):
-        return {
-            "success": False,
-            "error": f"Signature image not found: {signature_path}",
-        }
+    # Check if signature_path is a valid file or just text
+    is_image_signature = os.path.exists(signature_path) and signature_path.strip() != ""
 
     try:
         reader = PdfReader(input_path)
@@ -65,14 +66,34 @@ def sign_pdf(
 
         c = canvas.Canvas(overlay_path, pagesize=(page_width, page_height))
 
-        # Draw signature image
-        img = ImageReader(signature_path)
-        c.drawImage(img, x, y, width=width, height=height, mask="auto")
+        if is_image_signature:
+            # Draw signature image
+            try:
+                img = ImageReader(signature_path)
+                c.drawImage(img, x, y, width=width, height=height, mask="auto")
+            except Exception as e:
+                # If image fails, draw text signature instead
+                c.setFont("Helvetica-Bold", 12)
+                c.drawString(x, y + height / 2 - 6, signature_path[:50])
+        else:
+            # Draw text signature
+            c.setFont("Helvetica-Bold", 12)
+            # Draw a line for the signature
+            c.line(x, y + height / 2, x + width, y + height / 2)
+            # Draw the signature text
+            c.setFont("Helvetica", 10)
+            c.drawString(
+                x,
+                y + height / 2 - 15,
+                signature_path[:50] if signature_path else "Signed",
+            )
 
         # Add date below signature
         c.setFont("Helvetica", 8)
         c.drawString(
-            x, y - 15, f"Signed on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            x,
+            max(y - 20, 10),
+            f"Signed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         )
 
         c.save()
@@ -104,21 +125,17 @@ def sign_pdf(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print(
-            json.dumps(
-                {"success": False, "error": "Input PDF and signature image required"}
-            )
-        )
+    if len(sys.argv) < 2:
+        print(json.dumps({"success": False, "error": "Input PDF required"}))
         sys.exit(1)
 
     input_path = sys.argv[1]
-    signature_path = sys.argv[2]
+    signature = sys.argv[2] if len(sys.argv) > 2 else ""
     page_num = int(sys.argv[3]) if len(sys.argv) > 3 else 1
-    x = float(sys.argv[4]) if len(sys.argv) > 4 else None
-    y = float(sys.argv[5]) if len(sys.argv) > 5 else None
-    width = float(sys.argv[6]) if len(sys.argv) > 6 else 150
+    x = float(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] else None
+    y = float(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5] else None
+    width = float(sys.argv[6]) if len(sys.argv) > 6 else 200
     height = float(sys.argv[7]) if len(sys.argv) > 7 else 50
 
-    result = sign_pdf(input_path, signature_path, page_num, x, y, width, height)
+    result = sign_pdf(input_path, signature, page_num, x, y, width, height)
     print(json.dumps(result))

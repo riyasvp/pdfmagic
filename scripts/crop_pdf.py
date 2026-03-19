@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
 Crop PDF pages.
-Usage: python crop_pdf.py <input_pdf> <left> <bottom> <right> <top>
-       margins in points (1 inch = 72 points)
+Usage: python crop_pdf.py <input_pdf> [margins]
+       margins: Can be either:
+         - "left,bottom,right,top" (e.g., "10,10,10,10")
+         - OR individual args: left bottom right top
+       Values are margins to subtract from each side in points (1 inch = 72 points)
+       OR cropbox format: "left,bottom,right,top" as absolute coordinates
 Output: JSON with result
 """
 
@@ -10,7 +14,7 @@ import sys
 import os
 import json
 from datetime import datetime
-from typing import Union, List
+from typing import Union, List, Tuple
 
 try:
     from pypdf import PdfWriter, PdfReader
@@ -25,6 +29,21 @@ DOWNLOAD_DIR = os.environ.get(
     "DOWNLOAD_DIR",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "download"),
 )
+
+
+def parse_margins(args: list) -> Tuple[float, float, float, float]:
+    """Parse margins from command line arguments."""
+    if len(args) == 1:
+        # Single argument could be "left,bottom,right,top"
+        parts = args[0].split(",")
+        if len(parts) == 4:
+            return tuple(float(p) for p in parts)
+        else:
+            return (0, 0, 0, 0)
+    elif len(args) >= 4:
+        return (float(args[0]), float(args[1]), float(args[2]), float(args[3]))
+    else:
+        return (0, 0, 0, 0)
 
 
 def crop_pdf(input_path, left=0, bottom=0, right=0, top=0):
@@ -43,11 +62,27 @@ def crop_pdf(input_path, left=0, bottom=0, right=0, top=0):
             orig_right = float(page.mediabox.right)
             orig_top = float(page.mediabox.top)
 
-            # Calculate new dimensions
-            new_left = orig_left + left
-            new_bottom = orig_bottom + bottom
-            new_right = orig_right - right
-            new_top = orig_top - top
+            # Check if values look like absolute coordinates (large numbers)
+            # vs margins (smaller numbers)
+            max_page_size = max(orig_right - orig_left, orig_top - orig_bottom)
+
+            # If values are larger than half the page size, treat as absolute coords
+            if abs(left) > max_page_size / 2:
+                # Absolute coordinates mode
+                new_left = left
+                new_bottom = bottom
+                new_right = right
+                new_top = top
+            else:
+                # Margins mode - subtract from edges
+                new_left = orig_left + left
+                new_bottom = orig_bottom + bottom
+                new_right = orig_right - right
+                new_top = orig_top - top
+
+            # Ensure valid crop box
+            if new_right <= new_left or new_top <= new_bottom:
+                return {"success": False, "error": "Invalid crop dimensions"}
 
             # Apply crop using proper pypdf API
             if RectangleObject is not None:
@@ -89,10 +124,26 @@ if __name__ == "__main__":
         sys.exit(1)
 
     input_path = sys.argv[1]
-    left = float(sys.argv[2]) if len(sys.argv) > 2 else 0
-    bottom = float(sys.argv[3]) if len(sys.argv) > 3 else 0
-    right = float(sys.argv[4]) if len(sys.argv) > 4 else 0
-    top = float(sys.argv[5]) if len(sys.argv) > 5 else 0
 
-    result = crop_pdf(input_path, int(left), int(bottom), int(right), int(top))
+    # Parse margins from remaining arguments
+    if len(sys.argv) > 2:
+        margin_args = sys.argv[2:]
+        # Check if it's a comma-separated string
+        if len(margin_args) == 1 and "," in margin_args[0]:
+            parts = margin_args[0].split(",")
+            left, bottom, right, top = (
+                float(parts[0]),
+                float(parts[1]),
+                float(parts[2]),
+                float(parts[3]),
+            )
+        else:
+            left = float(margin_args[0]) if len(margin_args) > 0 else 0
+            bottom = float(margin_args[1]) if len(margin_args) > 1 else 0
+            right = float(margin_args[2]) if len(margin_args) > 2 else 0
+            top = float(margin_args[3]) if len(margin_args) > 3 else 0
+    else:
+        left, bottom, right, top = 0, 0, 0, 0
+
+    result = crop_pdf(input_path, left, bottom, right, top)
     print(json.dumps(result))
