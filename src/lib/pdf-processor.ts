@@ -65,8 +65,11 @@ export async function executePythonScript(
     // Escape paths for shell (handle Windows paths with spaces)
     const escapedArgs = args.map((a) => `"${a.replace(/"/g, '\\"')}"`).join(" ");
     
+    // Use py -3 on Windows, python3 on Unix
+    const pythonCmd = process.platform === "win32" ? "py -3" : "python3";
+    
     const { stdout, stderr } = await execAsync(
-      `python3 "${scriptPath}" ${escapedArgs}`,
+      `${pythonCmd} "${scriptPath}" ${escapedArgs}`,
       {
         timeout: 120000, // 2 minutes timeout
         maxBuffer: 1024 * 1024 * 50, // 50MB buffer
