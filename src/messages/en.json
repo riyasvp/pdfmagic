@@ -101,13 +101,18 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "subtitle": "View your processing history and manage your files",
     "recentFiles": "Recent Files",
     "favorites": "Favorites",
     "statistics": "Statistics",
     "filesProcessed": "Files Processed",
     "toolsUsed": "Tools Used",
     "storageUsed": "Storage Used",
-    "noRecentFiles": "No recent files"
+    "noRecentFiles": "No recent files",
+    "totalFiles": "Total Files",
+    "dataProcessed": "Data Processed",
+    "successful": "Successful",
+    "errors": "Errors"
   },
   "pricing": {
     "title": "Simple, Transparent Pricing",

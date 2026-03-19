@@ -17,12 +17,15 @@ import {
   XCircle,
   Loader2,
   ArrowLeft,
-  ExternalLink,
+  BarChart3,
+  Zap,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { getToolById } from "@/lib/tools-config";
+import { useTranslations } from "@/components/i18n";
 
 interface HistoryItem {
   id: string;
@@ -45,6 +48,7 @@ interface DashboardStats {
 const ITEMS_PER_PAGE = 20;
 
 export default function DashboardPage() {
+  const { t } = useTranslations();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -281,19 +285,19 @@ export default function DashboardPage() {
         >
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            {t("common.home")}
           </Link>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
               <History className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Your Dashboard</h1>
+              <h1 className="text-2xl md:text-3xl font-bold gradient-text">{t("dashboard.title")}</h1>
               <p className="text-muted-foreground">
-                View your processing history and manage your files
+                {t("dashboard.subtitle")}
               </p>
             </div>
           </div>
@@ -307,25 +311,43 @@ export default function DashboardPage() {
             transition={{ delay: 0.1 }}
             className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
           >
-            <div className="glass-card rounded-xl p-4">
-              <div className="text-sm text-muted-foreground mb-1">Total Files</div>
-              <div className="text-2xl font-bold">{stats.totalItems}</div>
+            <div className="glass-card rounded-xl p-4 hover-lift transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground mb-1">{t("dashboard.totalFiles")}</div>
+              <div className="text-2xl font-bold gradient-text">{stats.totalItems}</div>
             </div>
-            <div className="glass-card rounded-xl p-4">
-              <div className="text-sm text-muted-foreground mb-1">Data Processed</div>
-              <div className="text-2xl font-bold">{formatFileSize(stats.totalFileSize)}</div>
+            <div className="glass-card rounded-xl p-4 hover-lift transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground mb-1">{t("dashboard.dataProcessed")}</div>
+              <div className="text-2xl font-bold gradient-text">{formatFileSize(stats.totalFileSize)}</div>
             </div>
-            <div className="glass-card rounded-xl p-4">
-              <div className="text-sm text-muted-foreground mb-1">Successful</div>
-              <div className="text-2xl font-bold text-green-600 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5" />
+            <div className="glass-card rounded-xl p-4 hover-lift transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground mb-1">{t("dashboard.successful")}</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
                 {stats.successCount}
               </div>
             </div>
-            <div className="glass-card rounded-xl p-4">
-              <div className="text-sm text-muted-foreground mb-1">Errors</div>
-              <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
-                <XCircle className="w-5 h-5" />
+            <div className="glass-card rounded-xl p-4 hover-lift transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center">
+                  <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground mb-1">{t("dashboard.errors")}</div>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
                 {stats.errorCount}
               </div>
             </div>
