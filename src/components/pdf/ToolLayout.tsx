@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Settings, ChevronDown, Send, Loader2, Copy, Check, FileText, MessageSquare, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "./FileUpload";
+import { PdfPreview } from "./PdfPreview";
 import { ProcessingStatus } from "./ProcessingStatus";
 import { DownloadButton } from "./DownloadButton";
 import { MergePDFGrid } from "./MergePDFGrid";
@@ -977,18 +978,16 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
                 {splitResults.length} file{splitResults.length > 1 ? 's' : ''} created
               </p>
               
-              {/* Show file list */}
-              <div className="max-w-md mx-auto mb-6 p-4 rounded-xl bg-muted/50 border border-border">
-                <div className="text-sm text-muted-foreground mb-2">Files:</div>
-                <div className="space-y-1 text-left">
+{/* Show preview of each split file */}
+                <div className="max-w-md mx-auto mb-6 p-4 rounded-xl bg-muted/50 border border-border">
+                  <div className="text-sm text-muted-foreground mb-2">Preview:</div>
                   {splitResults.map((result, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <FileText className="w-4 h-4 text-violet-500" />
-                      <span>{result.name}</span>
+                    <div key={index} className="mb-4">
+                      <div className="text-sm font-medium mb-1">File: {result.name}</div>
+                      <PdfPreview file={result.blob} />
                     </div>
                   ))}
                 </div>
-              </div>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
