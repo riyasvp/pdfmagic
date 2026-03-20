@@ -2,6 +2,10 @@ import { createBrowserClient, createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
+// Demo mode constant
+export const DEMO_USER_ID = 'demo-user-001';
+export const isDemoMode = () => process.env.DEMO_MODE === 'true';
+
 // Types for better TypeScript support
 export interface User {
   id: string;
@@ -12,6 +16,7 @@ export interface User {
     full_name?: string;
   };
   created_at?: string;
+  isDemoUser?: boolean;
 }
 
 export interface Session {
@@ -20,6 +25,19 @@ export interface Session {
   refresh_token: string;
   expires_at?: number;
   expires_in?: number;
+}
+
+// Create a demo user object for demo mode
+function createDemoUser(): User {
+  return {
+    id: DEMO_USER_ID,
+    email: 'demo@pdfmagic.app',
+    user_metadata: {
+      name: 'Demo User',
+      full_name: 'Demo User',
+    },
+    isDemoUser: true,
+  };
 }
 
 // Check if Supabase is configured
@@ -145,12 +163,19 @@ export async function isAuthenticated(): Promise<boolean> {
  * Use getUser() or getSession() instead
  */
 export async function getUserFromRequest() {
+  // Check for demo mode first - return demo user if enabled
+  if (isDemoMode()) {
+    console.log('[Demo Mode] Using demo user for request');
+    return createDemoUser();
+  }
+
   // Check if Supabase is configured
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
     // Supabase not configured - return null (unauthenticated)
+    // Note: This will be treated as demo mode if DEMO_MODE=true is set
     return null;
   }
 
