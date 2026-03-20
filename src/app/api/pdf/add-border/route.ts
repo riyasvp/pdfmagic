@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveUploadedFile, executePythonScript, ensureDirectories } from "@/lib/pdf-processor";
+import {
+  saveUploadedFile,
+  executePythonScript,
+  ensureDirectories,
+  cleanupFile,
+} from "@/lib/pdf-processor";
+import { uploadToSupabase } from "@/lib/supabase-upload";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 
 export async function POST(request: NextRequest) {
+  let inputPath: string | null = null;
+  let outputPath: string | null = null;
+
   try {
+    // 1. Auth check
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthenticated" },
+        { status: 401 }
+      );
+    }
+
     await ensureDirectories();
 
     const formData = await request.formData();
@@ -26,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const inputPath = await saveUploadedFile(file);
+    inputPath = await saveUploadedFile(file);
 
     const result = await executePythonScript("border_pdf.py", [
       inputPath,
@@ -42,12 +61,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const outputFileName = (result.output as string).split("/").pop();
-    const downloadUrl = `/api/download/${outputFileName}`;
+    outputPath = result.output as string;
+
+    // Upload to Supabase
+    const pathParts = outputPath.split(/[\\/]/);
+    const outputFileName = pathParts.length > 0 ? pathParts[pathParts.length - 1] : `bordered_${Date.now()}.pdf`;
+
+    const { url, error } = await uploadToSupabase(outputPath, outputFileName, user.id);
+
+    if (error || !url) {
+      return NextResponse.json(
+        { success: false, error: "Upload failed: " + (error || "Unknown error") },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      downloadUrl,
+      downloadUrl: url,
       fileName: outputFileName,
     });
   } catch (error) {
@@ -56,5 +87,8 @@ export async function POST(request: NextRequest) {
       { success: false, error: "Failed to process request" },
       { status: 500 }
     );
+  } finally {
+    if (inputPath) await cleanupFile(inputPath);
+    if (outputPath) await cleanupFile(outputPath);
   }
 }
