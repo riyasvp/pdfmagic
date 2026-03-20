@@ -127,7 +127,6 @@ export async function addHistoryItem(
   }
 
   // Cast to any to bypass table schema type inference issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabaseServer
     .from("processing_history") as any)
     .insert({

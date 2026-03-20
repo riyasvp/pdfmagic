@@ -2,9 +2,75 @@ import { createBrowserClient, createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-// Demo mode constant
-export const DEMO_USER_ID = 'demo-user-001';
-export const isDemoMode = () => process.env.DEMO_MODE === 'true';
+// Re-export demo utilities for server-side use
+export {
+  DEMO_USER_ID,
+  isDemoMode,
+  DEMO_CONFIG,
+  getDemoFileSizeLimit,
+  validateDemoFileSize,
+} from './demo-utils';
+
+import {
+  DEMO_USER_ID,
+  isDemoMode,
+  DEMO_CONFIG,
+  getDemoFileSizeLimit,
+  validateDemoFileSize,
+} from './demo-utils';
+
+// Rate limiting storage (in-memory, resets on server restart)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+export interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetIn: number;
+}
+
+/**
+ * Check rate limit for demo users
+ * @param identifier - Unique identifier (IP address, user ID, etc.)
+ * @returns Rate limit result with remaining requests
+ */
+export function checkDemoRateLimit(identifier: string): RateLimitResult {
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minute window
+  
+  const existing = rateLimitStore.get(identifier);
+  
+  if (!existing || now > existing.resetTime) {
+    // New window, reset counter
+    rateLimitStore.set(identifier, {
+      count: 1,
+      resetTime: now + windowMs,
+    });
+    return {
+      allowed: true,
+      remaining: DEMO_CONFIG.maxRequestsPerMinute - 1,
+      resetIn: windowMs,
+    };
+  }
+  
+  if (existing.count >= DEMO_CONFIG.maxRequestsPerMinute) {
+    // Rate limit exceeded
+    return {
+      allowed: false,
+      remaining: 0,
+      resetIn: existing.resetTime - now,
+    };
+  }
+  
+  // Increment counter
+  existing.count++;
+  rateLimitStore.set(identifier, existing);
+  
+  return {
+    allowed: true,
+    remaining: DEMO_CONFIG.maxRequestsPerMinute - existing.count,
+    resetIn: existing.resetTime - now,
+  };
+}
 
 // Types for better TypeScript support
 export interface User {

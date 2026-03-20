@@ -23,3 +23,4 @@ export { FileSizeEstimator, FileSizeDisplay, SizeComparison } from "./FileSizeEs
 export { TextToSpeechControls } from "./TextToSpeechControls";
 export { KeyboardShortcuts, useKeyboardShortcuts, KbdKey } from "./KeyboardShortcuts";
 export { PresetsManager, QuickPresetsSelector } from "./PresetsManager";
+export { DemoModeIndicator } from "./DemoModeIndicator";

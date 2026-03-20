@@ -11,7 +11,6 @@ const DOWNLOAD_DIR = join(process.cwd(), "download");
 const SCRIPTS_DIR = join(process.cwd(), "scripts");
 
 // Python script output type - extends to include all possible properties
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PythonScriptResult = {
   success: boolean;
   output?: string;

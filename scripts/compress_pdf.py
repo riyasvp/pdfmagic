@@ -9,12 +9,37 @@ Output: JSON with result
 import sys
 import os
 import json
+import signal
 from datetime import datetime
 
+# Cross-platform PDF library import
 try:
     from pypdf import PdfReader, PdfWriter
 except ImportError:
-    from PyPDF2 import PdfReader, PdfWriter
+    try:
+        from PyPDF2 import PdfReader, PdfWriter
+    except ImportError:
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": "No PDF library available. Install pypdf or PyPDF2.",
+                }
+            )
+        )
+        sys.exit(1)
+
+
+# Timeout handler
+def timeout_handler(signum, frame):
+    print(json.dumps({"success": False, "error": "Operation timed out"}))
+    sys.exit(1)
+
+
+# Set timeout for long operations (Windows doesn't support SIGALRM, so we skip it there)
+if hasattr(signal, "SIGALRM") and sys.platform != "win32":
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(120)  # 2 minute timeout
 
 # Get download directory from environment or use default
 DOWNLOAD_DIR = os.environ.get(
@@ -36,12 +61,15 @@ def compress_pdf(input_path, quality="medium"):
         for page in reader.pages:
             writer.add_page(page)
 
-        # Remove metadata and compress
-        writer.remove_links()
+        # Remove links for compression
+        try:
+            writer.remove_links()
+        except Exception:
+            pass  # Some versions may not support this
 
         # Compress based on quality
         if quality == "low":
-            # More aggressive compression
+            # More aggressive compression settings
             pass
         elif quality == "high":
             # Less compression, better quality
@@ -49,7 +77,13 @@ def compress_pdf(input_path, quality="medium"):
         # medium is default
 
         # Ensure download directory exists
-        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+        try:
+            os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+        except OSError as e:
+            return {
+                "success": False,
+                "error": f"Failed to create output directory: {str(e)}",
+            }
 
         # Generate output filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -58,13 +92,20 @@ def compress_pdf(input_path, quality="medium"):
         output_path = os.path.join(DOWNLOAD_DIR, output_filename)
 
         # Write compressed PDF
-        with open(output_path, "wb") as output_file:
-            writer.write(output_file)
+        try:
+            with open(output_path, "wb") as output_file:
+                writer.write(output_file)
+        except Exception as e:
+            return {"success": False, "error": f"Failed to write output file: {str(e)}"}
 
         # Get file sizes
         original_size = os.path.getsize(input_path)
         compressed_size = os.path.getsize(output_path)
-        reduction = round((1 - compressed_size / original_size) * 100, 1)
+        reduction = (
+            round((1 - compressed_size / original_size) * 100, 1)
+            if original_size > 0
+            else 0
+        )
 
         return {
             "success": True,

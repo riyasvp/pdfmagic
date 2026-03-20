@@ -28,8 +28,7 @@ export interface PDFInfo {
  */
 function createPdfBlob(pdfBytes: Uint8Array): Blob {
   // Use type assertion to fix ArrayBufferLike vs ArrayBuffer type mismatch
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new Blob([pdfBytes as any], { type: 'application/pdf' });
+  return new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
 }
 
 export function formatFileSize(bytes: number): string {

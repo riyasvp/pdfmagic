@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, Menu, X, Moon, Sun, Sparkles, LogOut, History, Settings, Loader2 } from "lucide-react";
+import { FileText, Menu, X, Moon, Sun, Sparkles, LogOut, History, Settings, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { LanguageSwitcher } from "@/components/i18n";
+import { isDemoMode } from "@/lib/demo-utils";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -57,8 +58,18 @@ export function Header() {
     return `/#${anchor}`;
   };
 
+  // Check if demo mode is active
+  const showDemoBadge = typeof window !== "undefined" && isDemoMode();
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass">
+    <>
+      {showDemoBadge && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-amber-950 py-1 px-4 text-center text-sm font-medium">
+          <AlertTriangle className="inline-block w-4 h-4 mr-2" />
+          Demo Mode - Limited to 10MB files and 5 requests/minute
+        </div>
+      )}
+      <header className={cn("fixed left-0 right-0 z-50 glass", showDemoBadge && "top-8")}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -262,5 +273,6 @@ export function Header() {
         </div>
       </div>
     </header>
+    </>
   );
 }

@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 
 // Ensure worker is loaded (pdfjs uses a worker script)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjsLib as any).version}/pdf.worker.min.js`;
 
 interface PdfPreviewProps {
