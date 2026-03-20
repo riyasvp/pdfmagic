@@ -89,10 +89,16 @@ export function Header() {
               Features
             </Link>
             <Link 
-              href={getNavHref("pricing")} 
+              href="/blog" 
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
-              Pricing
+              Blog
+            </Link>
+            <Link 
+              href="/help" 
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              Help
             </Link>
           </nav>
 

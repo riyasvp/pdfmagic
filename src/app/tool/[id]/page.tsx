@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import Head from "next/head";
 
 const BASE_URL = "https://pdfmagic.store";
 
@@ -138,7 +139,7 @@ export default function ToolPage() {
       <Head>
         <title>{seo.title}</title>
         <meta name="description" content={seo.description} />
-        <meta name="keywords" content={seo.keywords.join(", ")} />
+        <meta name="keywords" content={(seo.keywords || []).join(", ")} />
         <link rel="canonical" href={canonicalUrl} />
 
         {/* Open Graph */}
@@ -228,6 +229,3 @@ export default function ToolPage() {
     </>
   );
 }
-
-// Need to import Head for the not found page
-import Head from "next/head";

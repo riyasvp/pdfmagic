@@ -68,7 +68,8 @@ export const metadata: Metadata = {
       { url: "/favicon.ico", sizes: "any" },
     ],
     apple: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-512x512.svg", type: "image/svg+xml" },
     ],
     shortcut: "/favicon.svg",
   },
@@ -99,6 +100,13 @@ export const metadata: Metadata = {
   other: {
     "google-adsense-account": "ca-pub-6819535548939423",
     "theme-color": "#7c3aed",
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "PDFMagic",
+    "application-name": "PDFMagic",
+    "msapplication-TileColor": "#7c3aed",
+    "msapplication-tap-highlight": "no",
   },
 };
 
@@ -170,6 +178,23 @@ export default function RootLayout({
             gtag('config', 'G-PDFMAGICID');
           `}
         </Script>
+
+        {/* PWA: Register Service Worker */}
+        <Script id="pwa-register" strategy="afterInteractive" dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                  .then(function(registration) {
+                    console.log('SW registered:', registration.scope);
+                  })
+                  .catch(function(error) {
+                    console.log('SW registration failed:', error);
+                  });
+              });
+            }
+          `
+        }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
