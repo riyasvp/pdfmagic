@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveUploadedFile, executePythonScript, ensureDirectories } from "@/lib/pdf-processor";
-import { basename } from "path";
+import { ensureDirectories, saveUploadedFile, executePythonScript, cleanupFile } from "@/lib/pdf-processor";
+import { uploadToSupabase } from "@/lib/supabase-upload";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 
 export async function POST(request: NextRequest) {
-  try {
-    await ensureDirectories();
+  let inputPath: string | null = null;
+  let outputPath: string | null = null;
 
+  try {
+    // 1. Auth check
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthenticated" },
+        { status: 401 }
+      );
+    }
+
+    // 2. Parse form data
+    await ensureDirectories();
     const formData = await request.formData();
     const files = formData.getAll("files") as File[];
 
@@ -24,8 +37,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const inputPath = await saveUploadedFile(file);
+    // 3. Save uploaded file
+    inputPath = await saveUploadedFile(file);
 
+    // 4. Execute Python script
     const result = await executePythonScript("markdown_pdf.py", [inputPath]);
 
     if (!result.success) {
@@ -35,19 +50,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const outputFileName = basename(result.output as string);
-    const downloadUrl = `/api/download/${outputFileName}`;
+    outputPath = result.output as string;
+    if (!outputPath) {
+      return NextResponse.json(
+        { success: false, error: "Invalid output path from script" },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({
-      success: true,
-      downloadUrl,
-      fileName: outputFileName,
-    });
-  } catch (error) {
-    console.error("PDF to Markdown error:", error);
+    // 5. Upload to Supabase
+    const outputFileName = `converted_${Date.now()}.md`;
+
+    const { url, error } = await uploadToSupabase(outputPath, outputFileName, user.id);
+
+    if (error || !url) {
+      return NextResponse.json(
+        { success: false, error: "Upload failed: " + (error || "Unknown error") },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, downloadUrl: url, fileName: outputFileName });
+
+  } catch (err) {
+    console.error("PDF to Markdown error:", err);
     return NextResponse.json(
-      { success: false, error: "Failed to process request" },
+      { success: false, error: "Server error" },
       { status: 500 }
     );
+  } finally {
+    if (inputPath) await cleanupFile(inputPath);
+    if (outputPath) await cleanupFile(outputPath);
   }
 }
