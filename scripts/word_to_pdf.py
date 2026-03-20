@@ -13,7 +13,12 @@ from pathlib import Path
 
 # Get download directory from environment or use default
 def _get_download_dir():
-    return Path(os.environ.get("DOWNLOAD_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "download"))
+    return Path(
+        os.environ.get(
+            "DOWNLOAD_DIR",
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "download"),
+        )
+    )
 
 
 # ----------------------------------------------------------------------
