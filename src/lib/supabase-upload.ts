@@ -58,11 +58,19 @@ export async function uploadToSupabase(
         return { url: null, error: error.message };
       }
 
-      const { data: urlData } = supabaseServer.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(fullPath);
+// Generate absolute public URL (avoids relative URL issues)
+  const bucketBaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace\(
+    "https://", "https://"
+  )?.replace(".co", ".co/storage/v1/object/public") + `/${BUCKET_NAME}`;
 
-      return { url: urlData.publicUrl, error: null };
+  const absoluteUrl = bucketBaseUrl ? `${bucketBaseUrl}/${fullPath}` : urlData.publicUrl;
+
+  // Schedule demo file cleanup
+  if (isDemo) {
+    await scheduleDemoCleanup(filePath);
+  }
+
+  return { url: absoluteUrl, error: null };
     } catch (err) {
       lastError = err instanceof Error ? err.message : "Unknown upload error";
       console.error(`Upload attempt ${attempt} error:`, lastError);

@@ -190,8 +190,10 @@ export async function handlePdfApiRoute(
     for (const p of inputPaths) {
       await cleanupFile(p);
     }
-    if (outputPath) {
-      await cleanupFile(outputPath);
-    }
+  if (outputPath) {
+    await cleanupFile(outputPath);
+    // Schedule demo file cleanup
+    await scheduleDemoCleanup(outputPath);
+  }
   }
 }
