@@ -295,8 +295,9 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
       // Save the merged PDF
       const mergedPdfBytes = await mergedPdf.save();
       
-      // Create download link
-      const blob = new Blob([mergedPdfBytes], { type: "application/pdf" });
+      // Create download link - use type assertion for BlobPart compatibility
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blob = new Blob([mergedPdfBytes as any], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       
       // Generate filename with timestamp

@@ -104,11 +104,14 @@ export async function getHistoryStats(userId: string): Promise<HistoryStats> {
     return { totalItems: 0, totalFileSize: 0, successCount: 0, errorCount: 0 };
   }
 
+  // Cast data to proper type to handle TypeScript inference issues
+  const typedData = data as Array<{ file_size?: number; status?: string }> | null;
+  
   const stats = {
-    totalItems: data.length,
-    totalFileSize: data.reduce((acc, item) => acc + (item.file_size || 0), 0),
-    successCount: data.filter((item) => item.status === "success").length,
-    errorCount: data.filter((item) => item.status === "error").length,
+    totalItems: typedData?.length || 0,
+    totalFileSize: typedData?.reduce((acc, item) => acc + (item.file_size || 0), 0) || 0,
+    successCount: typedData?.filter((item) => item.status === "success").length || 0,
+    errorCount: typedData?.filter((item) => item.status === "error").length || 0,
   };
 
   return stats;
@@ -123,8 +126,10 @@ export async function addHistoryItem(
     return null;
   }
 
-  const { data, error } = await supabaseServer
-    .from("processing_history")
+  // Cast to any to bypass table schema type inference issues
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabaseServer
+    .from("processing_history") as any)
     .insert({
       user_id: userId,
       tool_id: item.tool_id,

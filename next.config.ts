@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
+// TODO: [ARCHITECTURE] Remove ignoreBuildErrors after fixing TypeScript errors
+// Run: npx tsc --noEmit > ts-errors.txt 2>&1 to identify all errors
 const nextConfig: NextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // ⚠️ TEMPORARY: Must fix before production deployment
   },
-  reactStrictMode: false,
+  reactStrictMode: false, // TODO: [ARCHITECTURE] Enable for production to catch React 19 issues
   serverExternalPackages: ["sharp"],
   turbopack: {
     root: __dirname,

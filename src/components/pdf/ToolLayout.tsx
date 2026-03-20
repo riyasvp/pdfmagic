@@ -214,10 +214,8 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
         formData.append(key, String(value));
       });
 
-      // Determine the correct endpoint – edit tools use the generic /api/pdf/edit route
-      const endpoint = (tool.id === "watermark" || tool.id === "rotate")
-        ? "/api/pdf/edit"
-        : tool.endpoint;
+      // Use the dedicated routes for watermark and rotate (no auth required)
+      const endpoint = tool.endpoint;
 
       // Simulate upload progress
       const uploadInterval = setInterval(() => {
@@ -426,29 +424,6 @@ export function ToolLayout({ tool }: ToolLayoutProps) {
                 <strong>Note:</strong> Browser-based compression has limitations. For maximum compression of image-heavy PDFs, consider desktop tools like Adobe Acrobat.
               </p>
             </div>
-          </div>
-        );
-      case "watermark":
-      case "rotate":
-        return (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold">Edit Options</h3>
-            <select
-              className="border rounded p-2 w-full"
-              value={options.editType ?? "watermark"}
-              onChange={(e) => setOptions({ ...options, editType: e.target.value })}
-            >
-              <option value="watermark">Add Watermark</option>
-              <option value="rotate">Rotate PDF</option>
-            </select>
-
-            <FileUpload
-              acceptTypes={tool.acceptTypes}
-              maxFiles={tool.maxFiles}
-              onFilesSelected={handleFilesSelected}
-              isProcessing={status === "uploading"}
-              progress={progress}
-            />
           </div>
         );
       case "split":

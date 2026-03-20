@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { mkdir, writeFile, unlink, access } from "fs/promises";
-import { join, isAbsolute } from "path";
+import { join } from "path";
 import { randomUUID } from "crypto";
 
 const execAsync = promisify(exec);
@@ -10,8 +10,52 @@ const UPLOAD_DIR = join(process.cwd(), "upload");
 const DOWNLOAD_DIR = join(process.cwd(), "download");
 const SCRIPTS_DIR = join(process.cwd(), "scripts");
 
+// Python script output type - extends to include all possible properties
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PythonScriptResult = {
+  success: boolean;
+  output?: string;
+  error?: string;
+  // Common Python script return properties
+  linksAdded?: number;
+  bookmarks?: unknown[];
+  bookmarkCount?: number;
+  file1_pages?: number;
+  file2_pages?: number;
+  identical_pages?: number;
+  notice?: string;
+  attachmentCount?: number;
+  count?: number;
+  linkCount?: number;
+  links?: unknown[];
+  jsonOutput?: string;
+  pagesExtracted?: number;
+  pagesPerSheet?: number;
+  originalPages?: number;
+  imposedSheets?: number;
+  metadata?: Record<string, unknown>;
+  pages_processed?: number;
+  originalSize?: number;
+  optimizedSize?: number;
+  reduction?: number;
+  original_pages?: number;
+  new_pages?: number;
+  pdfaVersion?: string;
+  pagesRecovered?: number;
+  permissions?: Record<string, boolean>;
+  files_count?: number;
+  stampedCount?: number;
+  failedCount?: number;
+  unlocked?: boolean;
+  password?: string;
+  passwordsTried?: number;
+  validation?: Record<string, unknown>;
+  // Additional properties as needed by Python scripts
+  [key: string]: unknown;
+};
+
 // Ensure directories exist
-export async function ensureDirectories() {
+export async function ensureDirectories(): Promise<void> {
   try {
     await access(UPLOAD_DIR);
   } catch {
@@ -51,7 +95,7 @@ export async function saveUploadedFile(
 export async function executePythonScript(
   scriptName: string,
   args: string[]
-): Promise<{ success: boolean; output?: string; error?: string }> {
+): Promise<PythonScriptResult> {
   const scriptPath = join(SCRIPTS_DIR, scriptName);
   
   // Set environment variables for Python scripts
@@ -83,7 +127,8 @@ export async function executePythonScript(
 
     // Parse JSON output
     try {
-      return JSON.parse(stdout.trim());
+      const result = JSON.parse(stdout.trim()) as PythonScriptResult;
+      return result;
     } catch {
       // If not JSON, return raw output
       return { success: true, output: stdout.trim() };

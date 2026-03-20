@@ -317,8 +317,6 @@ export default function PricingPage() {
                   <div className="flex items-baseline gap-1">
                     {tier.price === 0 ? (
                       <span className="text-4xl font-bold">Free</span>
-                    ) : tier.price === "custom" ? (
-                      <span className="text-4xl font-bold">Custom</span>
                     ) : (
                       <>
                         <span className="text-4xl font-bold">${price}</span>
@@ -328,7 +326,7 @@ export default function PricingPage() {
                       </>
                     )}
                   </div>
-                  {tier.price > 0 && tier.price !== "custom" && (
+                  {tier.price > 0 && (
                     <p className="text-sm text-muted-foreground mt-1">
                       {billingPeriod === "yearly"
                         ? `Billed as $${price} per year`

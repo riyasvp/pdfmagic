@@ -103,8 +103,11 @@ export function validateFilePath(baseDir: string, userPath: string): string | nu
   const resolvedBase = resolve(baseDir);
   const resolvedUserPath = resolve(baseDir, userPath);
   
+  // Determine path separator based on platform
+  const pathSep = baseDir.includes('\\') ? '\\' : '/';
+  
   // Ensure the resolved path is within the base directory
-  if (!resolvedUserPath.startsWith(resolvedBase + process.sep) && 
+  if (!resolvedUserPath.startsWith(resolvedBase + pathSep) && 
       resolvedUserPath !== resolvedBase) {
     return null; // Path traversal detected
   }

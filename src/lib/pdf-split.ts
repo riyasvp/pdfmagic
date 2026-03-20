@@ -57,6 +57,16 @@ function parsePageNumbers(pagesStr: string, totalPages: number): number[] {
 }
 
 /**
+ * Helper function to create a Blob from pdf-lib output with proper type handling
+ * Fixes React 19/TypeScript 5.x ArrayBuffer compatibility issues
+ */
+function createPdfBlob(pdfBytes: Uint8Array): Blob {
+  // Use type assertion to fix ArrayBufferLike vs ArrayBuffer type mismatch
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new Blob([pdfBytes as any], { type: 'application/pdf' });
+}
+
+/**
  * Split PDF by page ranges (e.g., "1-3, 5-7, 10-12")
  * Each range becomes a separate PDF
  */
@@ -85,7 +95,7 @@ export async function splitPDFByRanges(
     copiedPages.forEach(page => newPdf.addPage(page));
 
     const pdfBytes = await newPdf.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = createPdfBlob(pdfBytes);
 
     // Create name from page numbers
     const pageNames = pages.map(p => p + 1).join('-');
@@ -121,7 +131,7 @@ export async function extractPages(
   copiedPages.forEach(page => newPdf.addPage(page));
 
   const pdfBytes = await newPdf.save();
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -162,7 +172,7 @@ export async function splitPDFEveryNPages(
     copiedPages.forEach(page => newPdf.addPage(page));
 
     const pdfBytes = await newPdf.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = createPdfBlob(pdfBytes);
 
     results.push({
       blob,
@@ -220,7 +230,7 @@ export async function splitPDFIntoNFiles(
       copiedPages.forEach(page => newPdf.addPage(page));
 
       const pdfBytes = await newPdf.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = createPdfBlob(pdfBytes);
 
       results.push({
         blob,
@@ -250,7 +260,7 @@ export async function splitAllPages(
     newPdf.addPage(copiedPage);
 
     const pdfBytes = await newPdf.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = createPdfBlob(pdfBytes);
 
     results.push({
       blob,

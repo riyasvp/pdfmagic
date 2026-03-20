@@ -4,6 +4,11 @@ import { supabase } from "@/lib/supabase";
 // POST /api/analytics/track - Track an analytics event
 export async function POST(request: NextRequest) {
   try {
+    // Skip if Supabase is not configured
+    if (!supabase) {
+      return NextResponse.json({ success: true, skipped: true });
+    }
+
     const body = await request.json();
     const { event, toolId, timestamp, metadata } = body;
 
@@ -45,6 +50,11 @@ export async function POST(request: NextRequest) {
 // GET /api/analytics/track - Get analytics summary (admin only)
 export async function GET(request: NextRequest) {
   try {
+    // Skip if Supabase is not configured
+    if (!supabase) {
+      return NextResponse.json({ success: true, skipped: true });
+    }
+
     const { searchParams } = new URL(request.url);
     const toolId = searchParams.get("toolId");
     const days = parseInt(searchParams.get("days") || "7", 10);

@@ -17,5 +17,7 @@ export const localeNames: Record<Locale, string> = {
 };
 
 export default getRequestConfig(async ({ locale }) => ({
+  // Cast locale to string to satisfy type requirements
+  locale: String(locale),
   messages: (await import(`./messages/${locale}.json`)).default,
 }));

@@ -9,6 +9,11 @@ export async function uploadToSupabase(
   fileName: string,
   userId: string
 ): Promise<SupabaseUploadResponse> {
+  // Skip if Supabase is not configured
+  if (!supabaseServer) {
+    return { url: null, error: "Supabase not configured" };
+  }
+
   try {
     const fileBuffer = await readFile(filePath);
     const uint8Array = new Uint8Array(fileBuffer);

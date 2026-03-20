@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Check if email confirmation is required
-      const needsConfirmation = data.user && !data.session;
+      const needsConfirmation = !!(data.user && !data.session);
       return { error: null, needsConfirmation };
     } catch (error) {
       return { error: error as Error, needsConfirmation: false };

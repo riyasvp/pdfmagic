@@ -17,6 +17,16 @@ export interface CompressionResult {
 }
 
 /**
+ * Helper function to create a Blob from pdf-lib output with proper type handling
+ * Fixes React 19/TypeScript 5.x ArrayBuffer compatibility issues
+ */
+function createPdfBlob(pdfBytes: Uint8Array): Blob {
+  // Use type assertion to fix ArrayBufferLike vs ArrayBuffer type mismatch
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new Blob([pdfBytes as any], { type: 'application/pdf' });
+}
+
+/**
  * Format file size for display
  */
 export function formatFileSize(bytes: number): string {
@@ -70,8 +80,7 @@ export async function compressPDF(
     const compressedSize = pdfBytes.byteLength;
     const reduction = ((1 - compressedSize / originalSize) * 100);
     
-    // Create blob
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = createPdfBlob(pdfBytes);
     
     // Generate filename
     const baseName = file.name.replace('.pdf', '');

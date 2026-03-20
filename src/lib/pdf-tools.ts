@@ -22,6 +22,16 @@ export interface PDFInfo {
 // UTILITY FUNCTIONS
 // ==========================================
 
+/**
+ * Helper function to create a Blob from pdf-lib output with proper type handling
+ * Fixes React 19/TypeScript 5.x ArrayBuffer compatibility issues
+ */
+function createPdfBlob(pdfBytes: Uint8Array): Blob {
+  // Use type assertion to fix ArrayBufferLike vs ArrayBuffer type mismatch
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new Blob([pdfBytes as any], { type: 'application/pdf' });
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -62,7 +72,7 @@ export async function mergePDFs(files: File[]): Promise<{ blob: Blob; name: stri
   }
 
   const pdfBytes = await mergedPdf.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
 
   return {
     blob,
@@ -120,7 +130,7 @@ export async function rotatePDF(
   }
 
   const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -182,7 +192,7 @@ export async function addWatermark(
   });
 
   const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -210,7 +220,7 @@ export async function deletePages(
   });
 
   const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -301,7 +311,7 @@ export async function imagesToPDF(
   }
 
   const pdfBytes = await pdfDoc.save();
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
 
   return {
     blob,
@@ -367,7 +377,7 @@ export async function addPageNumbers(
   });
 
   const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -387,13 +397,14 @@ export async function protectPDF(
   const arrayBuffer = await file.arrayBuffer();
   const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
 
+  // Note: pdf-lib doesn't support password encryption directly
+  // This is a placeholder that saves the PDF without encryption
+  // For actual password protection, you would need a server-side solution
   const pdfBytes = await pdfDoc.save({
     useObjectStreams: true,
-    userPassword: password,
-    ownerPassword: password,
   });
 
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -422,7 +433,7 @@ export async function extractPages(
   copiedPages.forEach((page) => newPdf.addPage(page));
 
   const pdfBytes = await newPdf.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -449,7 +460,7 @@ export async function reorderPages(
   copiedPages.forEach((page) => newPdf.addPage(page));
 
   const pdfBytes = await newPdf.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {
@@ -483,7 +494,7 @@ export async function cropPDF(
   });
 
   const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = createPdfBlob(pdfBytes);
   const baseName = file.name.replace('.pdf', '');
 
   return {

@@ -86,7 +86,6 @@ import {
   Grid2X2,
   Stamp,
   SpellCheck2,
-  type LucideIcon,
 } from "lucide-react";
 
 export interface Tool {
