@@ -72,10 +72,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use AI to answer question
-    const zai = await ZAI.create();
-    
-    const completion = await zai.chat.completions.create({
+  // Use AI to answer question with proper configuration
+  const zai = await ZAI.create({
+    tool_round_parser: "legacy",  // Force legacy tool call parser
+    auto_tool_choice: false,       // Disable auto tool choice
+  });
+
+  const completion = await zai.chat.completions.create({
       messages: [
         {
           role: "system",

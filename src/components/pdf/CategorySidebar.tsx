@@ -81,6 +81,7 @@ export function CategorySidebar({ className, collapsed = false, onToggle }: Cate
                 <Link
                   key={tool.id}
                   href={`/tool/${tool.id}`}
+                  prefetch={false}
                   className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <tool.icon
