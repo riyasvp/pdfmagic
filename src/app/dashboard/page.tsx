@@ -70,7 +70,7 @@ export default function DashboardPage() {
       const userEmail = localStorage.getItem("pdfmagic_user_email");
       if (!userEmail) {
         // Redirect to sign in
-        router.push("/auth/signin?redirect=/dashboard");
+        router.push("/auth/login?redirect=/dashboard");
         return;
       }
       setIsAuthenticated(true);
