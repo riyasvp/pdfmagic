@@ -8,101 +8,115 @@ interface ProcessRequest {
   file_path: string;
   user_id: string;
   file_name: string;
-  tool?: string; // 'pdf-to-excel', 'pdf-to-image', 'merge', etc.
+  tool?: string;
+}
+
+// Clean PDF text - remove PDF commands and extract readable text
+function cleanPdfText(rawText: string): string {
+  // Extract text between parentheses (PDF text objects)
+  const textMatches = rawText.match(/\(([^)]+)\)/g) || [];
+
+  const cleanedLines: string[] = [];
+  textMatches.forEach(match => {
+    // Remove parentheses
+    let text = match.slice(1, -1);
+    // Unescape PDF escape sequences
+    text = text
+      .replace(/\\n/g, ' ')
+      .replace(/\\r/g, ' ')
+      .replace(/\\t/g, '  ')
+      .replace(/\\\(/g, '(')
+      .replace(/\\\)/g, ')')
+      .replace(/\\\\/g, '\\')
+      .trim();
+
+    if (text && text.length > 0) {
+      cleanedLines.push(text);
+    }
+  });
+
+  return cleanedLines.join('\n');
 }
 
 // Process PDF to Excel - extracts text and creates structured CSV
-async function processPdfToExcel(pdfBytes: ArrayBuffer, fileName: string): Promise<{ content: string; tables: number }> {
-  // Parse PDF structure
+async function processPdfToExcel(pdfBytes: ArrayBuffer, fileName: string): Promise<{ content: string; tables: number; textLines: number }> {
   const decoder = new TextDecoder('utf-8', { fatal: false });
   const pdfText = decoder.decode(pdfBytes);
 
-  // Extract text content between streams
-  const textContent: string[] = [];
-  const streamRegex = /stream\s*([\s\S]*?)\s*endstream/g;
-  let match;
-  let tables = 0;
-
-  while ((match = streamRegex.exec(pdfText)) !== null) {
-    const content = match[1].trim();
-    if (content && content.length > 10) {
-      // Clean up PDF text encoding
-      const cleanedText = content
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '\r')
-        .replace(/\\t/g, '\t')
-        .replace(/\(/g, '')
-        .replace(/\)/g, '')
-        .replace(/\\/g, '')
-        .trim();
-
-      if (cleanedText.length > 0) {
-        textContent.push(cleanedText);
-        // Check if looks like table data
-        if (cleanedText.includes('\t') || cleanedText.split('\n').length > 3) {
-          tables++;
-        }
-      }
-    }
-  }
-
   // Extract page count
-  const pageMatch = pdfText.match(/\/Pages\s+(\d+)/);
-  const pageCount = pageMatch ? parseInt(pageMatch[1]) : (pdfText.match(/\/Type\s*\/Page[^s]/g) || []).length;
+  const pagesMatch = pdfText.match(/\/Count\s+(\d+)/);
+  const pageCount = pagesMatch ? parseInt(pagesMatch[1]) : 1;
+
+  // Extract all text content
+  const rawText = cleanPdfText(pdfText);
+
+  // Split into lines
+  const textLines = rawText.split('\n').filter(line => line.trim().length > 0);
+
+  // Detect potential tables (lines with commas or tabs)
+  let tables = 0;
+  const tableLines: string[] = [];
+  const otherLines: string[] = [];
+
+  textLines.forEach(line => {
+    if (line.includes(',') || line.includes('\t')) {
+      tableLines.push(line);
+      tables++;
+    } else {
+      otherLines.push(line);
+    }
+  });
 
   // Create CSV content
   const csvRows: string[] = [];
 
-  // Header row
+  // Header section
   csvRows.push('PDF to Excel Conversion Report');
-  csvRows.push(`Original File,${fileName}`);
-  csvRows.push(`Pages Found,${pageCount || 1}`);
-  csvRows.push(`Potential Tables,${tables}`);
+  csvRows.push(`Source File,${fileName}`);
+  csvRows.push(`Pages,${pageCount}`);
+  csvRows.push(`Text Lines Extracted,${textLines.length}`);
+  csvRows.push(`Table Rows Detected,${tables}`);
   csvRows.push('');
+  csvRows.push(`Generated at,${new Date().toISOString()}`);
+  csvRows.push('');
+  csvRows.push('=== EXTRACTED TABLE DATA ===');
 
-  // Extracted content
-  csvRows.push('=== EXTRACTED TEXT CONTENT ===');
-  textContent.forEach((text, idx) => {
-    const lines = text.split('\n').filter(l => l.trim());
-    lines.forEach(line => {
-      // Escape CSV special characters
-      const escaped = line.includes(',') ? `"${line}"` : line;
-      csvRows.push(escaped);
+  // Add detected table data
+  if (tableLines.length > 0) {
+    tableLines.forEach(line => {
+      // Already CSV formatted
+      csvRows.push(line);
     });
+  }
+
+  csvRows.push('');
+  csvRows.push('=== OTHER TEXT CONTENT ===');
+
+  // Add other text content
+  otherLines.forEach(line => {
+    const escaped = line.includes(',') ? `"${line}"` : line;
+    csvRows.push(escaped);
   });
 
   return {
     content: csvRows.join('\n'),
-    tables: tables
+    tables: tables,
+    textLines: textLines.length
   };
 }
 
-// Merge multiple PDFs
-async function mergePdfs(pdfFiles: ArrayBuffer[]): Promise<Uint8Array> {
-  // Simple PDF merge - concatenate pages
-  // In production, use pdf-lib for proper merging
-  const combined = new Uint8Array(pdfFiles.reduce((sum, arr) => sum + arr.byteLength, 0));
-  let offset = 0;
-  for (const file of pdfFiles) {
-    combined.set(new Uint8Array(file), offset);
-    offset += file.byteLength;
-  }
-  return combined;
-}
-
-// Compress PDF (remove redundant data)
+// Compress PDF
 async function compressPdf(pdfBytes: ArrayBuffer): Promise<{ data: Uint8Array; originalSize: number; newSize: number }> {
   const originalSize = pdfBytes.byteLength;
-
-  // Basic compression - remove comments and unnecessary whitespace
   const decoder = new TextDecoder('utf-8', { fatal: false });
   let pdfText = decoder.decode(pdfBytes);
 
-  // Remove comments
-  pdfText = pdfText.replace(/%[^\n]*\n/g, '\n');
+  // Remove comments (lines starting with %)
+  pdfText = pdfText.replace(/%[^\n\r]*[\n\r]/g, '\n');
 
-  // Remove excessive whitespace
-  pdfText = pdfText.replace(/\s+/g, ' ');
+  // Remove unnecessary whitespace
+  pdfText = pdfText.replace(/[ \t]+/g, ' ');
+  pdfText = pdfText.replace(/[\n\r]+/g, '\n');
 
   const encoder = new TextEncoder();
   const compressed = encoder.encode(pdfText);
@@ -111,6 +125,19 @@ async function compressPdf(pdfBytes: ArrayBuffer): Promise<{ data: Uint8Array; o
     data: compressed,
     originalSize,
     newSize: compressed.length
+  };
+}
+
+// Extract text only
+async function extractText(pdfBytes: ArrayBuffer, fileName: string): Promise<{ content: string; charCount: number }> {
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+  const pdfText = decoder.decode(pdfBytes);
+
+  const cleanText = cleanPdfText(pdfText);
+
+  return {
+    content: cleanText,
+    charCount: cleanText.length
   };
 }
 
@@ -166,7 +193,10 @@ Deno.serve(async (req: Request) => {
         outputFileName = `converted/${user_id}/${Date.now()}_${file_name.replace('.pdf', '.csv')}`;
         outputData = result.content;
         contentType = 'text/csv';
-        resultInfo = { tablesExtracted: result.tables };
+        resultInfo = {
+          tablesExtracted: result.tables,
+          textLines: result.textLines
+        };
         break;
       }
 
@@ -184,11 +214,11 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'extract-text': {
-        const result = await processPdfToExcel(pdfBytes, file_name);
+        const result = await extractText(pdfBytes, file_name);
         outputFileName = `text/${user_id}/${Date.now()}_${file_name.replace('.pdf', '.txt')}`;
         outputData = result.content;
         contentType = 'text/plain';
-        resultInfo = { charCount: result.content.length };
+        resultInfo = { charCount: result.charCount };
         break;
       }
 
