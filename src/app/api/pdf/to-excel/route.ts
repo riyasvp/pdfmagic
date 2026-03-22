@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
           file_path: filePath,
           user_id: userId,
           file_name: file.name,
+          tool: 'pdf-to-excel',
         }),
       }
     );
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
       success: true,
       downloadUrl: result.downloadUrl,
       fileName: result.fileName,
+      tablesExtracted: result.tablesExtracted || 0,
     });
 
   } catch (err) {
