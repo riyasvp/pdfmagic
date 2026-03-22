@@ -3,6 +3,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const googleApiKey = Deno.env.get('GOOGLE_AI_API_KEY')!;
+const groqApiKey = Deno.env.get('GROQ_API_KEY')!;
 
 interface ProcessRequest {
   file_path: string;
@@ -11,25 +13,120 @@ interface ProcessRequest {
   tool?: string;
 }
 
-// Clean PDF text - remove PDF commands and extract readable text
-function cleanPdfText(rawText: string): string {
-  // Extract text between parentheses (PDF text objects)
-  const textMatches = rawText.match(/\(([^)]+)\)/g) || [];
+// Process PDF using Google Gemini AI
+async function processWithGemini(
+  pdfBytes: ArrayBuffer,
+  task: string
+): Promise<{ content: string; tables: number; model: string }> {
+  
+  const base64Pdf = btoa(
+    String.fromCharCode(...new Uint8Array(pdfBytes))
+  );
 
+  const prompts: Record<string, string> = {
+    'pdf-to-excel': `Analyze this PDF and extract ALL tables and structured data as CSV format.
+Return ONLY CSV data with headers. No explanations or markdown.`,
+    'extract-text': `Extract ALL text from this PDF. Return clean text only.`,
+    'summarize': `Summarize this PDF in bullet points. Include key numbers and conclusions.`
+  };
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${googleApiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompts[task] || prompts['pdf-to-excel'] },
+            { inline_data: { mime_type: 'application/pdf', data: base64Pdf } }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Gemini error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  const content = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  
+  return { content, tables: 0, model: 'Gemini 2.0 Flash' };
+}
+
+// Process PDF using Groq (Llama) - text-based processing
+async function processWithGroq(
+  extractedText: string,
+  task: string
+): Promise<{ content: string; tables: number; model: string }> {
+  
+  const prompts: Record<string, string> = {
+    'pdf-to-excel': `Convert this PDF text content to a proper CSV format.
+Extract any tables, data rows, or structured information.
+Return ONLY valid CSV data, no explanations.
+
+PDF Content:
+${extractedText}`,
+    'extract-text': `Clean and format this extracted PDF text. Fix any formatting issues.
+Return the cleaned text only.
+
+Text:
+${extractedText}`,
+    'summarize': `Summarize this PDF content in bullet points. Include key numbers and findings.
+
+Content:
+${extractedText}`
+  };
+
+  const response = await fetch(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'user', content: prompts[task] || prompts['pdf-to-excel'] }
+        ],
+        temperature: 0.1,
+        max_tokens: 4096
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Groq error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  const content = result.choices?.[0]?.message?.content || '';
+  
+  return { content, tables: 0, model: 'Groq Llama 3.3 70B' };
+}
+
+// Basic PDF text extraction
+function extractPdfText(pdfBytes: ArrayBuffer): string {
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+  const pdfText = decoder.decode(pdfBytes);
+
+  const textMatches = pdfText.match(/\(([^)]+)\)/g) || [];
+  
   const cleanedLines: string[] = [];
   textMatches.forEach(match => {
-    // Remove parentheses
     let text = match.slice(1, -1);
-    // Unescape PDF escape sequences
     text = text
-      .replace(/\\n/g, ' ')
-      .replace(/\\r/g, ' ')
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '')
       .replace(/\\t/g, '  ')
-      .replace(/\\\(/g, '(')
-      .replace(/\\\)/g, ')')
-      .replace(/\\\\/g, '\\')
       .trim();
-
     if (text && text.length > 0) {
       cleanedLines.push(text);
     }
@@ -38,106 +135,41 @@ function cleanPdfText(rawText: string): string {
   return cleanedLines.join('\n');
 }
 
-// Process PDF to Excel - extracts text and creates structured CSV
-async function processPdfToExcel(pdfBytes: ArrayBuffer, fileName: string): Promise<{ content: string; tables: number; textLines: number }> {
-  const decoder = new TextDecoder('utf-8', { fatal: false });
-  const pdfText = decoder.decode(pdfBytes);
-
-  // Extract page count
-  const pagesMatch = pdfText.match(/\/Count\s+(\d+)/);
-  const pageCount = pagesMatch ? parseInt(pagesMatch[1]) : 1;
-
-  // Extract all text content
-  const rawText = cleanPdfText(pdfText);
-
-  // Split into lines
-  const textLines = rawText.split('\n').filter(line => line.trim().length > 0);
-
-  // Detect potential tables (lines with commas or tabs)
-  let tables = 0;
-  const tableLines: string[] = [];
-  const otherLines: string[] = [];
-
-  textLines.forEach(line => {
-    if (line.includes(',') || line.includes('\t')) {
-      tableLines.push(line);
-      tables++;
-    } else {
-      otherLines.push(line);
+// Main processing function with fallback chain
+async function processPdf(
+  pdfBytes: ArrayBuffer,
+  fileName: string,
+  task: string
+): Promise<{ content: string; tables: number; processedBy: string }> {
+  
+  // Try Google Gemini first (if API key available)
+  if (googleApiKey) {
+    try {
+      const result = await processWithGemini(pdfBytes, task);
+      return { ...result, processedBy: result.model };
+    } catch (error) {
+      console.log('Gemini failed, trying Groq:', error);
     }
-  });
-
-  // Create CSV content
-  const csvRows: string[] = [];
-
-  // Header section
-  csvRows.push('PDF to Excel Conversion Report');
-  csvRows.push(`Source File,${fileName}`);
-  csvRows.push(`Pages,${pageCount}`);
-  csvRows.push(`Text Lines Extracted,${textLines.length}`);
-  csvRows.push(`Table Rows Detected,${tables}`);
-  csvRows.push('');
-  csvRows.push(`Generated at,${new Date().toISOString()}`);
-  csvRows.push('');
-  csvRows.push('=== EXTRACTED TABLE DATA ===');
-
-  // Add detected table data
-  if (tableLines.length > 0) {
-    tableLines.forEach(line => {
-      // Already CSV formatted
-      csvRows.push(line);
-    });
   }
 
-  csvRows.push('');
-  csvRows.push('=== OTHER TEXT CONTENT ===');
+  // Extract text from PDF
+  const extractedText = extractPdfText(pdfBytes);
+  
+  // If we have extracted text, try Groq for intelligent processing
+  if (extractedText.trim() && groqApiKey) {
+    try {
+      const result = await processWithGroq(extractedText, task);
+      return { ...result, processedBy: result.model };
+    } catch (error) {
+      console.log('Groq failed, using basic extraction:', error);
+    }
+  }
 
-  // Add other text content
-  otherLines.forEach(line => {
-    const escaped = line.includes(',') ? `"${line}"` : line;
-    csvRows.push(escaped);
-  });
-
+  // Final fallback: return extracted text as-is
   return {
-    content: csvRows.join('\n'),
-    tables: tables,
-    textLines: textLines.length
-  };
-}
-
-// Compress PDF
-async function compressPdf(pdfBytes: ArrayBuffer): Promise<{ data: Uint8Array; originalSize: number; newSize: number }> {
-  const originalSize = pdfBytes.byteLength;
-  const decoder = new TextDecoder('utf-8', { fatal: false });
-  let pdfText = decoder.decode(pdfBytes);
-
-  // Remove comments (lines starting with %)
-  pdfText = pdfText.replace(/%[^\n\r]*[\n\r]/g, '\n');
-
-  // Remove unnecessary whitespace
-  pdfText = pdfText.replace(/[ \t]+/g, ' ');
-  pdfText = pdfText.replace(/[\n\r]+/g, '\n');
-
-  const encoder = new TextEncoder();
-  const compressed = encoder.encode(pdfText);
-
-  return {
-    data: compressed,
-    originalSize,
-    newSize: compressed.length
-  };
-}
-
-// Extract text only
-async function extractText(pdfBytes: ArrayBuffer, fileName: string): Promise<{ content: string; charCount: number }> {
-  const decoder = new TextDecoder('utf-8', { fatal: false });
-  const pdfText = decoder.decode(pdfBytes);
-
-  const cleanText = cleanPdfText(pdfText);
-
-  return {
-    content: cleanText,
-    charCount: cleanText.length
+    content: extractedText,
+    tables: 0,
+    processedBy: 'Basic PDF Extraction'
   };
 }
 
@@ -175,72 +207,44 @@ Deno.serve(async (req: Request) => {
 
     if (downloadError || !fileData) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to download file: ' + downloadError?.message }),
+        JSON.stringify({ success: false, error: 'Failed to download file' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const pdfBytes = await fileData.arrayBuffer();
-    let outputFileName: string;
-    let outputData: Uint8Array | string;
-    let contentType: string;
-    let resultInfo: Record<string, unknown> = {};
 
-    // Process based on tool type
-    switch (tool) {
-      case 'pdf-to-excel': {
-        const result = await processPdfToExcel(pdfBytes, file_name);
-        outputFileName = `converted/${user_id}/${Date.now()}_${file_name.replace('.pdf', '.csv')}`;
-        outputData = result.content;
-        contentType = 'text/csv';
-        resultInfo = {
-          tablesExtracted: result.tables,
-          textLines: result.textLines
-        };
-        break;
-      }
+    // Process the PDF
+    const result = await processPdf(pdfBytes, file_name, tool);
 
-      case 'compress': {
-        const result = await compressPdf(pdfBytes);
-        outputFileName = `compressed/${user_id}/${Date.now()}_compressed_${file_name}`;
-        outputData = result.data;
-        contentType = 'application/pdf';
-        resultInfo = {
-          originalSize: result.originalSize,
-          newSize: result.newSize,
-          reduction: `${((1 - result.newSize / result.originalSize) * 100).toFixed(1)}%`
-        };
-        break;
-      }
+    // Determine output file details
+    const extensions: Record<string, string> = {
+      'pdf-to-excel': 'csv',
+      'extract-text': 'txt',
+      'summarize': 'txt'
+    };
+    const ext = extensions[tool] || 'csv';
+    const contentTypes: Record<string, string> = {
+      'pdf-to-excel': 'text/csv',
+      'extract-text': 'text/plain',
+      'summarize': 'text/plain'
+    };
+    
+    const folder = tool === 'pdf-to-excel' ? 'converted' : tool === 'summarize' ? 'summary' : 'text';
+    const outputFileName = `${folder}/${user_id}/${Date.now()}_${file_name.replace('.pdf', `.${ext}`)}`;
 
-      case 'extract-text': {
-        const result = await extractText(pdfBytes, file_name);
-        outputFileName = `text/${user_id}/${Date.now()}_${file_name.replace('.pdf', '.txt')}`;
-        outputData = result.content;
-        contentType = 'text/plain';
-        resultInfo = { charCount: result.charCount };
-        break;
-      }
-
-      default:
-        return new Response(
-          JSON.stringify({ success: false, error: 'Unknown tool: ' + tool }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-    }
-
-    // Upload result to storage
+    // Upload result
     const { error: uploadError } = await supabase
       .storage
       .from('pdf-edits')
-      .upload(outputFileName, outputData, {
-        contentType,
+      .upload(outputFileName, result.content, {
+        contentType: contentTypes[tool] || 'text/csv',
         upsert: true,
       });
 
     if (uploadError) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to upload result: ' + uploadError.message }),
+        JSON.stringify({ success: false, error: 'Failed to upload result' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -259,7 +263,8 @@ Deno.serve(async (req: Request) => {
         success: true,
         downloadUrl: urlData.publicUrl,
         fileName: outputFileName.split('/').pop(),
-        ...resultInfo
+        processedBy: result.processedBy,
+        tablesExtracted: result.tables
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
