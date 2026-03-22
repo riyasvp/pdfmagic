@@ -98,7 +98,7 @@ export async function executePythonScript(
   args: string[]
 ): Promise<PythonScriptResult> {
   const scriptPath = join(SCRIPTS_DIR, scriptName);
-  
+
   // Set environment variables for Python scripts
   const env = {
     ...process.env,
@@ -107,12 +107,20 @@ export async function executePythonScript(
   };
 
   try {
+    // Check if Python is available
+    const pythonCmd = process.platform === "win32" ? "py -3" : "python3";
+
+    // First check if Python is installed (skip check on Vercel)
+    if (process.env.VERCEL === '1') {
+      return {
+        success: false,
+        error: "PDF processing requires Python which is not available on this serverless platform. Please use the downloadable desktop version or contact support."
+      };
+    }
+
     // Escape paths for shell (handle Windows paths with spaces)
     const escapedArgs = args.map((a) => `"${a.replace(/"/g, '\\"')}"`).join(" ");
-    
-    // Use py -3 on Windows, python3 on Unix
-    const pythonCmd = process.platform === "win32" ? "py -3" : "python3";
-    
+
     const { stdout, stderr } = await execAsync(
       `${pythonCmd} "${scriptPath}" ${escapedArgs}`,
       {
