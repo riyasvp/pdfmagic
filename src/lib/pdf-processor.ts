@@ -6,8 +6,10 @@ import { randomUUID } from "crypto";
 
 const execAsync = promisify(exec);
 
-const UPLOAD_DIR = join(process.cwd(), "upload");
-const DOWNLOAD_DIR = join(process.cwd(), "download");
+// Use /tmp for Vercel serverless compatibility
+const TMP_DIR = process.env.VERCEL === '1' ? '/tmp' : process.cwd();
+const UPLOAD_DIR = join(TMP_DIR, "upload");
+const DOWNLOAD_DIR = join(TMP_DIR, "download");
 const SCRIPTS_DIR = join(process.cwd(), "scripts");
 
 // Python script output type - extends to include all possible properties
