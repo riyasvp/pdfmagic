@@ -2,7 +2,7 @@
 
 export const DEMO_USER_ID = 'demo-user-001';
 
-export const isDemoMode = () => process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+export const isDemoMode = () => process.env.DEMO_MODE === 'true';
 
 export const DEMO_CONFIG = {
   maxFileSize: 10 * 1024 * 1024, // 10 MB max file size for demo
