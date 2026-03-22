@@ -8,14 +8,16 @@ export async function POST(request: NextRequest) {
   let outputPath: string | null = null;
 
   try {
-    // 1. Auth check
+    // 1. Auth check - allow demo mode or authenticated users
     const user = await getUserFromRequest();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthenticated" },
-        { status: 401 }
-      );
-    }
+
+    // For demo mode, create a mock user
+    const demoUser = user || {
+      id: 'demo-user',
+      email: 'demo@pdfmagic.store'
+    };
+
+    console.log('[PDF to Excel] User:', user?.id || 'demo-user', 'Demo mode:', !user);
 
     // 2. Parse form data
     await ensureDirectories();
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
     // 5. Upload to Supabase
     const outputFileName = `converted_${Date.now()}.xlsx`;
 
-    const { url, error } = await uploadToSupabase(outputPath, outputFileName, user.id);
+    const { url, error } = await uploadToSupabase(outputPath, outputFileName, demoUser.id);
 
     if (error || !url) {
       return NextResponse.json(
@@ -73,8 +75,9 @@ export async function POST(request: NextRequest) {
 
   } catch (err) {
     console.error("PDF to Excel error:", err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { success: false, error: "Server error" },
+      { success: false, error: "Server error: " + errorMessage },
       { status: 500 }
     );
   } finally {
