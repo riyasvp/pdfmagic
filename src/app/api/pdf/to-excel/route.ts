@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureDirectories, saveUploadedFile, executePythonScript, cleanupFile } from "@/lib/pdf-processor";
-import { uploadToSupabase } from "@/lib/supabase-upload";
 import { getUserFromRequest } from "@/lib/supabase-auth";
 
-export async function POST(request: NextRequest) {
-  let inputPath: string | null = null;
-  let outputPath: string | null = null;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+export async function POST(request: NextRequest) {
   try {
     // 1. Auth check - allow demo mode or authenticated users
     const user = await getUserFromRequest();
-
-    // For demo mode, create a mock user
-    const demoUser = user || {
-      id: 'demo-user',
-      email: 'demo@pdfmagic.store'
-    };
-
-    console.log('[PDF to Excel] User:', user?.id || 'demo-user', 'Demo mode:', !user);
+    const userId = user?.id || 'demo-user';
 
     // 2. Parse form data
-    await ensureDirectories();
     const formData = await request.formData();
     const file = formData.get("files") as File | null;
 
@@ -38,40 +28,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Save uploaded file
-    inputPath = await saveUploadedFile(file);
+    // 3. Upload to Supabase Storage first
+    const filePath = `uploads/${userId}/${Date.now()}_${file.name}`;
+    const fileBuffer = await file.arrayBuffer();
 
-    // 4. Execute Python script
-    const result = await executePythonScript("pdf_to_excel.py", [inputPath]);
+    const uploadResponse = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/pdf-edits/${filePath}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/pdf',
+          'x-upsert': 'true',
+        },
+        body: fileBuffer,
+      }
+    );
 
-    if (!result.success) {
+    if (!uploadResponse.ok) {
+      const error = await uploadResponse.text();
+      console.error('Upload error:', error);
       return NextResponse.json(
-        { success: false, error: result.error || "Failed to convert PDF to Excel" },
+        { success: false, error: "Failed to upload file" },
         { status: 500 }
       );
     }
 
-    outputPath = result.output as string;
-    if (!outputPath) {
+    // 4. Call Supabase Edge Function for processing
+    const functionResponse = await fetch(
+      `${SUPABASE_URL}/functions/v1/pdf-to-excel`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_path: filePath,
+          user_id: userId,
+          file_name: file.name,
+        }),
+      }
+    );
+
+    const result = await functionResponse.json();
+
+    if (!functionResponse.ok || !result.success) {
       return NextResponse.json(
-        { success: false, error: "Invalid output path from script" },
+        { success: false, error: result.error || "Processing failed" },
         { status: 500 }
       );
     }
 
-    // 5. Upload to Supabase
-    const outputFileName = `converted_${Date.now()}.xlsx`;
-
-    const { url, error } = await uploadToSupabase(outputPath, outputFileName, demoUser.id);
-
-    if (error || !url) {
-      return NextResponse.json(
-        { success: false, error: "Upload failed: " + (error || "Unknown error") },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ success: true, downloadUrl: url, fileName: outputFileName });
+    return NextResponse.json({
+      success: true,
+      downloadUrl: result.downloadUrl,
+      fileName: result.fileName,
+    });
 
   } catch (err) {
     console.error("PDF to Excel error:", err);
@@ -80,8 +93,5 @@ export async function POST(request: NextRequest) {
       { success: false, error: "Server error: " + errorMessage },
       { status: 500 }
     );
-  } finally {
-    if (inputPath) await cleanupFile(inputPath);
-    if (outputPath) await cleanupFile(outputPath);
   }
 }
