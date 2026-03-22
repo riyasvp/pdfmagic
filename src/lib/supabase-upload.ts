@@ -59,9 +59,9 @@ export async function uploadToSupabase(
       }
 
 // Generate absolute public URL (avoids relative URL issues)
-  const bucketBaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace\(
-    "https://", "https://"
-  )?.replace(".co", ".co/storage/v1/object/public") + `/${BUCKET_NAME}`;
+   const bucketBaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(
+     "https://", "https://"
+   )?.replace(".co", ".co/storage/v1/object/public") + `/${BUCKET_NAME}`;
 
   const absoluteUrl = bucketBaseUrl ? `${bucketBaseUrl}/${fullPath}` : urlData.publicUrl;
 

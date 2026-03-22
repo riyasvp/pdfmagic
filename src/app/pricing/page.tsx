@@ -127,7 +127,14 @@ const pricingTiers: PricingTier[] = [
   },
 ];
 
-const comparisonFeatures = [
+interface ComparisonFeature {
+  name: string;
+  free: string | boolean;
+  pro: string | boolean;
+  enterprise: string | boolean;
+}
+
+const comparisonFeatures: ComparisonFeature[] = [
   {
     name: "File Size Limit",
     free: "50 MB",
@@ -408,37 +415,49 @@ export default function PricingPage() {
                   <tr key={feature.name} className="border-b last:border-b-0">
                     <td className="py-4 px-4">{feature.name}</td>
                     <td className="py-4 px-4 text-center">
-                      {typeof feature.free === "boolean" ? (
-                        feature.free ? (
-                          <Check className="w-5 h-5 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-5 h-5 text-muted-foreground mx-auto" />
-                        )
-                      ) : (
-                        <span className="text-sm">{feature.free}</span>
-                      )}
+{typeof feature.free === "boolean" ? (
+  feature.free ? (
+    <Check className="w-5 h-5 text-green-600 mx-auto" />
+  ) : (
+    <X className="w-5 h-5 text-muted-foreground mx-auto" />
+  )
+) : (
+  typeof feature.free === "string" ? (
+    <span className="text-sm">{feature.free}</span>
+  ) : (
+    <span className="text-sm">-{typeof feature.free}-</span>
+  )
+)}
                     </td>
                     <td className="py-4 px-4 text-center bg-primary/5">
-                      {typeof feature.pro === "boolean" ? (
-                        feature.pro ? (
-                          <Check className="w-5 h-5 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-5 h-5 text-muted-foreground mx-auto" />
-                        )
-                      ) : (
-                        <span className="text-sm font-medium">{feature.pro}</span>
-                      )}
+{typeof feature.pro === "boolean" ? (
+  feature.pro ? (
+    <Check className="w-5 h-5 text-green-600 mx-auto" />
+  ) : (
+    <X className="w-5 h-5 text-muted-foreground mx-auto" />
+  )
+) : (
+  typeof feature.pro === "string" ? (
+    <span className="text-sm font-medium">{feature.pro}</span>
+  ) : (
+    <span className="text-sm font-medium">-{feature.pro}-</span>
+  )
+)}
                     </td>
                     <td className="py-4 px-4 text-center">
-                      {typeof feature.enterprise === "boolean" ? (
-                        feature.enterprise ? (
-                          <Check className="w-5 h-5 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-5 h-5 text-muted-foreground mx-auto" />
-                        )
-                      ) : (
-                        <span className="text-sm font-medium">{feature.enterprise}</span>
-                      )}
+{typeof feature.enterprise === "boolean" ? (
+  feature.enterprise ? (
+    <Check className="w-5 h-5 text-green-600 mx-auto" />
+  ) : (
+    <X className="w-5 h-5 text-muted-foreground mx-auto" />
+  )
+) : (
+  typeof feature.enterprise === "string" ? (
+    <span className="text-sm font-medium">{feature.enterprise}</span>
+  ) : (
+    <span className="text-sm font-medium">-{feature.enterprise}-</span>
+  )
+)}
                     </td>
                   </tr>
                 ))}

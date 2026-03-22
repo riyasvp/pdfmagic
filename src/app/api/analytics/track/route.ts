@@ -19,14 +19,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Store the analytics event
-    const { error } = await supabase.from("analytics_events").insert({
-      event,
-      tool_id: toolId,
-      timestamp: new Date(timestamp).toISOString(),
-      metadata: metadata || {},
-      // No user identification - privacy-first
-    });
+// Store the analytics event
+     const timestampISO = new Date(timestamp).toISOString();
+     // If timestamp is invalid, use current time
+     const safeTimestamp = isNaN(Date.parse(timestampISO)) ? new Date().toISOString() : timestampISO;
+     
+     const { error } = await supabase.from("analytics_events").insert({
+       event,
+       tool_id: toolId,
+       timestamp: safeTimestamp,
+       metadata: metadata || {},
+       // No user identification - privacy-first
+     });
 
     if (error) {
       console.error("Analytics tracking error:", error);
@@ -144,12 +148,13 @@ function aggregateStats(events: AnalyticsEvent[]) {
     }
   });
 
-  // Calculate averages
-  Object.keys(toolStats).forEach((toolId) => {
-    const stats = toolStats[toolId];
-    stats.totalFileSize = stats.uses > 0 ? stats.totalFileSize / stats.uses : 0;
-    stats.totalProcessingTime = stats.uses > 0 ? stats.totalProcessingTime / stats.uses : 0;
-  });
+// Calculate averages
+   Object.keys(toolStats).forEach((toolId) => {
+     const stats = toolStats[toolId];
+     // Safely calculate averages, protecting against division by zero
+     stats.totalFileSize = stats.uses > 0 ? stats.totalFileSize / stats.uses : 0;
+     stats.totalProcessingTime = stats.uses > 0 ? stats.totalProcessingTime / stats.uses : 0;
+   });
 
   return toolStats;
 }

@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
 
   // Use AI to answer question with proper configuration
   const zai = await ZAI.create({
+    tool_choice: "none",           // Force tool_choice to none to avoid auto requirement
     tool_round_parser: "legacy",  // Force legacy tool call parser
     auto_tool_choice: false,       // Disable auto tool choice
   });

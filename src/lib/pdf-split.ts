@@ -61,8 +61,8 @@ function parsePageNumbers(pagesStr: string, totalPages: number): number[] {
  * Fixes React 19/TypeScript 5.x ArrayBuffer compatibility issues
  */
 function createPdfBlob(pdfBytes: Uint8Array): Blob {
-  // Use type assertion to fix ArrayBufferLike vs ArrayBuffer type mismatch
-  return new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+  // Uint8Array is assignable to BlobPart (ArrayBufferView) in modern TypeScript/DOM libs
+  return new Blob([pdfBytes], { type: 'application/pdf' });
 }
 
 /**
