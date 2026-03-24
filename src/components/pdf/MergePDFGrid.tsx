@@ -34,10 +34,6 @@ import {
   Loader2,
   Download,
   Combine,
-  Upload,
-  GripVertical,
-  Eye,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,9 +62,9 @@ const formatSize = (bytes: number): string => {
 
 // Size presets
 const SIZE_PRESETS = {
-  small: { label: "Small", icon: Grid3X3, size: 100 },
-  medium: { label: "Medium", icon: Grid2X2, size: 140 },
-  large: { label: "Large", icon: Grid, size: 180 },
+  small: { label: "Small", icon: Grid3X3, size: 120 },
+  medium: { label: "Medium", icon: Grid2X2, size: 180 },
+  large: { label: "Large", icon: Grid, size: 240 },
 } as const;
 
 interface MergePDFGridProps {
@@ -81,8 +77,6 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
   const [isMerging, setIsMerging] = useState(false);
   const [mergeProgress, setMergeProgress] = useState(0);
   const [mergeError, setMergeError] = useState<string | null>(null);
-  const [previewFileId, setPreviewFileId] = useState<string | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
 
   const {
     files,
@@ -114,17 +108,11 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
   const canUndo = useMergePDFStore(selectCanUndo);
   const canRedo = useMergePDFStore(selectCanRedo);
 
-  // Get preview file
-  const previewFile = useMemo(
-    () => files.find((f) => f.id === previewFileId),
-    [files, previewFileId]
-  );
-
   // Get thumbnail size based on file count or user preference
   const autoThumbnailSize = useMemo(() => {
     const count = files.length;
-    if (count >= 50) return 100;
-    if (count >= 20) return 120;
+    if (count >= 50) return 120;
+    if (count >= 20) return 150;
     return getThumbnailPixels(thumbnailSize);
   }, [files.length, thumbnailSize]);
 
@@ -154,6 +142,7 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
         (f) => f.thumbnailLoading && !f.thumbnail && !f.error
       );
 
+      // Process thumbnails in parallel (max 3 at a time)
       for (let i = 0; i < filesNeedingThumbnails.length; i += 3) {
         const batch = filesNeedingThumbnails.slice(i, i + 3);
 
@@ -178,18 +167,10 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
     }
   }, [files, autoThumbnailSize, updateFileThumbnail, setFileError]);
 
-  // Auto-select first file for preview when files are added
-  useEffect(() => {
-    if (files.length > 0 && !previewFileId) {
-      setPreviewFileId(files[0].id);
-    } else if (files.length === 0) {
-      setPreviewFileId(null);
-    }
-  }, [files, previewFileId]);
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + A - Select all
       if ((e.ctrlKey || e.metaKey) && e.key === "a") {
         e.preventDefault();
         if (selectedIds.size === files.length) {
@@ -199,17 +180,20 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
         }
       }
 
+      // Delete / Backspace - Remove selected
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedIds.size > 0) {
           removeFiles(Array.from(selectedIds));
         }
       }
 
+      // Ctrl/Cmd + Z - Undo
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         undo();
       }
 
+      // Ctrl/Cmd + Shift + Z - Redo
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && e.shiftKey) {
         e.preventDefault();
         redo();
@@ -233,8 +217,6 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
           selectFile(id);
         }
       }
-      // Set preview to selected file
-      setPreviewFileId(id);
     },
     [selectedIds, selectFile, toggleSelectFile, deselectAll]
   );
@@ -253,32 +235,7 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
     [addFiles]
   );
 
-  // Handle drag and drop on the drop zone
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-      const newFiles = Array.from(e.dataTransfer.files).filter(
-        (f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
-      );
-      if (newFiles.length > 0) {
-        addFiles(newFiles);
-      }
-    },
-    [addFiles]
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  }, []);
-
-  // Drag handlers for reordering
+  // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
@@ -306,21 +263,28 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
     setMergeError(null);
 
     try {
+      // Create a new PDF document
       const mergedPdf = await PDFDocument.create();
       const totalFiles = files.length;
 
+      // Process each PDF file
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
         try {
+          // Read the file as ArrayBuffer
           const arrayBuffer = await file.file.arrayBuffer();
+          
+          // Load the PDF
           const pdfDoc = await PDFDocument.load(arrayBuffer, { 
             ignoreEncryption: true 
           });
           
+          // Copy all pages to the merged document
           const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
           pages.forEach((page) => mergedPdf.addPage(page));
           
+          // Update progress
           setMergeProgress(Math.round(((i + 1) / totalFiles) * 100));
         } catch (err) {
           console.error(`Failed to process ${file.name}:`, err);
@@ -328,13 +292,18 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
         }
       }
 
+      // Save the merged PDF
       const mergedPdfBytes = await mergedPdf.save();
-      const blob = new Blob([mergedPdfBytes], { type: "application/pdf" });
+      
+// Create download link - Uint8Array is assignable to BlobPart in modern TypeScript/DOM libs
+       const blob = new Blob([mergedPdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       
+      // Generate filename with timestamp
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, "");
       const fileName = `merged_${timestamp}.pdf`;
       
+      // Trigger download
       const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
@@ -342,6 +311,7 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
       link.click();
       document.body.removeChild(link);
       
+      // Cleanup
       URL.revokeObjectURL(url);
       
       console.log(`[MergePDF] Successfully merged ${files.length} PDFs into ${fileName}`);
@@ -360,364 +330,156 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
     [files, activeId]
   );
 
+  // Calculate grid columns based on thumbnail size
+  const gridCols = useMemo(() => {
+    if (autoThumbnailSize <= 120) return "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8";
+    if (autoThumbnailSize <= 180) return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
+    return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
+  }, [autoThumbnailSize]);
+
   // Check if total size exceeds 500MB
   const sizeWarning = totalSize > 500 * 1024 * 1024;
 
   return (
     <div className="space-y-4">
-      {/* Stats Bar */}
-      {files.length > 0 && (
-        <div className="flex items-center gap-4 text-sm text-muted-foreground px-2">
-          <span className="flex items-center gap-1.5">
-            <FileText className="w-4 h-4" />
-            <strong>{files.length}</strong> file{files.length !== 1 ? "s" : ""}
-          </span>
-          <span>
-            <strong>{totalPages}</strong> page{totalPages !== 1 ? "s" : ""} total
-          </span>
-          <span>
-            <strong>{formatSize(totalSize)}</strong> total
-          </span>
-          <div className="flex-1" />
-          {/* Undo/Redo */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={undo}
-            disabled={!canUndo || isMerging}
-            title="Undo (Ctrl+Z)"
-            className="h-8 w-8"
-          >
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={redo}
-            disabled={!canRedo || isMerging}
-            title="Redo (Ctrl+Shift+Z)"
-            className="h-8 w-8"
-          >
-            <Redo2 className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20">
+        {/* Add Files Button */}
+        <Button
+          onClick={() => fileInputRef.current?.click()}
+          className="btn-gradient text-white gap-2"
+          disabled={isMerging}
+        >
+          <Plus className="w-4 h-4" />
+          Add PDFs
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          multiple
+          className="hidden"
+          onChange={handleFilesAdded}
+        />
 
-      {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* LEFT: Drag & Drop Area */}
-        <div className="space-y-3">
-          {/* Toolbar - Compact */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              className="btn-gradient text-white gap-2"
-              disabled={isMerging}
-            >
-              <Plus className="w-4 h-4" />
-              Add PDFs
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,application/pdf"
-              multiple
-              className="hidden"
-              onChange={handleFilesAdded}
-            />
+        {/* Clear All */}
+        {files.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearAllFiles}
+            className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            disabled={isMerging}
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear All
+          </Button>
+        )}
 
-            {files.length > 0 && (
+        {/* Select All / Deselect */}
+        {files.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={selectedIds.size === files.length ? deselectAll : selectAll}
+            className="gap-2"
+            disabled={isMerging}
+          >
+            {selectedIds.size === files.length ? (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearAllFiles}
-                  className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  disabled={isMerging}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Clear All
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={selectedIds.size === files.length ? deselectAll : selectAll}
-                  className="gap-2"
-                  disabled={isMerging}
-                >
-                  {selectedIds.size === files.length ? (
-                    <>
-                      <CheckSquare className="w-4 h-4" />
-                      Deselect
-                    </>
-                  ) : (
-                    <>
-                      <Square className="w-4 h-4" />
-                      Select All
-                    </>
-                  )}
-                </Button>
-
-                {selectedIds.size > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeFiles(Array.from(selectedIds))}
-                    className="gap-2 text-red-600"
-                    disabled={isMerging}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Remove ({selectedIds.size})
-                  </Button>
-                )}
+                <CheckSquare className="w-4 h-4" />
+                Deselect All
+              </>
+            ) : (
+              <>
+                <Square className="w-4 h-4" />
+                Select All
               </>
             )}
+          </Button>
+        )}
 
-            <div className="flex-1" />
-
-            {/* View Size Toggle - Compact */}
-            {files.length > 0 && (
-              <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
-                {Object.entries(SIZE_PRESETS).map(([key, preset]) => (
-                  <Button
-                    key={key}
-                    variant={thumbnailSize === key ? "default" : "ghost"}
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setThumbnailSize(key as "small" | "medium" | "large")}
-                    title={preset.label}
-                    disabled={isMerging}
-                  >
-                    <preset.icon className="w-3.5 h-3.5" />
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Large Drop Zone / File List */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            className={cn(
-              "relative min-h-[400px] lg:min-h-[500px] rounded-2xl border-2 border-dashed transition-all duration-300",
-              isDragOver 
-                ? "border-violet-500 bg-violet-500/10 scale-[1.02]" 
-                : files.length === 0 
-                  ? "border-violet-300 bg-violet-500/5 hover:border-violet-400 hover:bg-violet-500/10"
-                  : "border-transparent bg-muted/30",
-              "overflow-hidden"
-            )}
+        {/* Remove Selected */}
+        {selectedIds.size > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => removeFiles(Array.from(selectedIds))}
+            className="gap-2 text-red-600"
+            disabled={isMerging}
           >
-            {/* Empty State */}
-            {files.length === 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="w-32 h-32 mb-6 rounded-3xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center"
-                >
-                  <Upload className="w-16 h-16 text-violet-500" />
-                </motion.div>
-                <motion.h3
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-2xl font-semibold mb-3"
-                >
-                  Drop PDFs Here
-                </motion.h3>
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-muted-foreground mb-6 max-w-md"
-                >
-                  Drag and drop your PDF files here, or click the button below to browse.
-                  Add multiple files to merge them together.
-                </motion.p>
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-gradient text-white gap-2 text-lg px-8 py-6"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add PDFs
-                  </Button>
-                </motion.div>
-              </div>
-            )}
+            <Trash2 className="w-4 h-4" />
+            Remove ({selectedIds.size})
+          </Button>
+        )}
 
-            {/* File Grid */}
-            {files.length > 0 && (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={filteredFiles.map((f) => f.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  <div className="p-4 h-full overflow-y-auto max-h-[600px]">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      <AnimatePresence>
-                        {filteredFiles.map((file, index) => (
-                          <motion.div
-                            key={file.id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className={cn(
-                              "relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all",
-                              previewFileId === file.id
-                                ? "border-violet-500 ring-2 ring-violet-500/30"
-                                : "border-transparent hover:border-violet-300"
-                            )}
-                            onClick={() => setPreviewFileId(file.id)}
-                          >
-                            <PDFThumbnailCard
-                              file={file}
-                              index={index}
-                              isSelected={selectedIds.has(file.id)}
-                              thumbnailSize={autoThumbnailSize}
-                              onSelect={handleSelect}
-                              onRemove={removeFile}
-                            />
-                            {/* Order Badge */}
-                            <div className="absolute top-2 left-2 w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center text-sm font-bold shadow-lg">
-                              {index + 1}
-                            </div>
-                            {/* Preview indicator */}
-                            {previewFileId === file.id && (
-                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center">
-                                <Eye className="w-3.5 h-3.5" />
-                              </div>
-                            )}
-                            {/* Drag handle */}
-                            <div className="absolute bottom-2 right-2 w-6 h-6 rounded bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <GripVertical className="w-3.5 h-3.5" />
-                            </div>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </SortableContext>
+        <div className="flex-1" />
 
-                {/* Drag Overlay */}
-                <DragOverlay>
-                  {activeFile && (
-                    <div className="opacity-80 pointer-events-none">
-                      <PDFThumbnailCard
-                        file={activeFile}
-                        index={files.findIndex((f) => f.id === activeFile.id)}
-                        isSelected={selectedIds.has(activeFile.id)}
-                        thumbnailSize={autoThumbnailSize}
-                        onSelect={() => {}}
-                        onRemove={() => {}}
-                      />
-                    </div>
-                  )}
-                </DragOverlay>
-              </DndContext>
-            )}
-          </div>
+        {/* Undo/Redo */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={undo}
+          disabled={!canUndo || isMerging}
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo2 className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={redo}
+          disabled={!canRedo || isMerging}
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <Redo2 className="w-4 h-4" />
+        </Button>
 
-          {/* Add more files button when files exist */}
-          {files.length > 0 && (
+        {/* View Size Toggle */}
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
+          {Object.entries(SIZE_PRESETS).map(([key, preset]) => (
             <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full border-dashed border-2 h-12 gap-2"
+              key={key}
+              variant={thumbnailSize === key ? "default" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setThumbnailSize(key as "small" | "medium" | "large")}
+              title={preset.label}
               disabled={isMerging}
             >
-              <Plus className="w-4 h-4" />
-              Add More PDFs
+              <preset.icon className="w-3.5 h-3.5" />
             </Button>
-          )}
+          ))}
         </div>
 
-        {/* RIGHT: Preview Panel */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              <Eye className="w-5 h-5" />
-              Preview
-            </h3>
-            {previewFile && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPreviewFileId(null)}
-                className="text-muted-foreground"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Clear
-              </Button>
-            )}
-          </div>
+        {/* Sort */}
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+          className="px-3 py-1.5 rounded-lg border bg-background text-sm"
+          disabled={isMerging}
+        >
+          <option value="upload">Upload Order</option>
+          <option value="name-asc">Name (A-Z)</option>
+          <option value="name-desc">Name (Z-A)</option>
+          <option value="size-asc">Size (Small-Large)</option>
+          <option value="size-desc">Size (Large-Small)</option>
+        </select>
 
-          {/* Preview Area */}
-          <div className="rounded-2xl border bg-muted/30 min-h-[400px] lg:min-h-[500px] overflow-hidden">
-            {previewFile ? (
-              <div className="h-full flex flex-col">
-                {/* File Info Header */}
-                <div className="p-4 border-b bg-gradient-to-r from-violet-500/10 to-purple-500/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-violet-600 text-white flex items-center justify-center text-sm font-bold">
-                      {files.findIndex((f) => f.id === previewFile.id) + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{previewFile.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {previewFile.pageCount || "?"} pages • {formatSize(previewFile.size)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Preview Image */}
-                <div className="flex-1 overflow-y-auto p-4 flex items-start justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
-                  {previewFile.thumbnail ? (
-                    <motion.img
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      src={previewFile.thumbnail}
-                      alt={previewFile.name}
-                      className="max-w-full h-auto rounded-lg shadow-2xl"
-                      style={{ maxHeight: "calc(100% - 2rem)" }}
-                    />
-                  ) : previewFile.thumbnailLoading ? (
-                    <div className="flex flex-col items-center gap-3 py-20">
-                      <Loader2 className="w-10 h-10 animate-spin text-violet-500" />
-                      <p className="text-muted-foreground">Loading preview...</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground">
-                      <FileText className="w-16 h-16" />
-                      <p>Preview not available</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-                <Eye className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No file selected</p>
-                <p className="text-sm">Click on a file to preview it here</p>
-              </div>
-            )}
+        {/* Search */}
+        {files.length > 5 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-40 h-9"
+              disabled={isMerging}
+            />
           </div>
-        </div>
+        )}
       </div>
 
       {/* Size Warning */}
@@ -752,6 +514,97 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
             Dismiss
           </Button>
         </motion.div>
+      )}
+
+      {/* Stats Bar */}
+      {files.length > 0 && (
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <FileText className="w-4 h-4" />
+            <strong>{files.length}</strong> file{files.length !== 1 ? "s" : ""}
+          </span>
+          <span>
+            <strong>{totalPages}</strong> page{totalPages !== 1 ? "s" : ""} total
+          </span>
+          <span>
+            <strong>{formatSize(totalSize)}</strong> total
+          </span>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {files.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-16 text-center"
+        >
+          <div className="w-24 h-24 mb-6 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+            <FileText className="w-12 h-12 text-violet-500" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">No PDFs added yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Click "Add PDFs" or drag and drop files here to start merging.
+            Supports unlimited PDF files!
+          </p>
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            className="btn-gradient text-white gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add PDFs
+          </Button>
+        </motion.div>
+      )}
+
+      {/* PDF Grid */}
+      {files.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={filteredFiles.map((f) => f.id)}
+            strategy={rectSortingStrategy}
+          >
+            <motion.div
+              layout
+              className={cn("grid gap-3", gridCols)}
+            >
+              <AnimatePresence>
+                {filteredFiles.map((file, index) => (
+                  <PDFThumbnailCard
+                    key={file.id}
+                    file={file}
+                    index={index}
+                    isSelected={selectedIds.has(file.id)}
+                    thumbnailSize={autoThumbnailSize}
+                    onSelect={handleSelect}
+                    onRemove={removeFile}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          </SortableContext>
+
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeFile && (
+              <div className="opacity-80 pointer-events-none">
+                <PDFThumbnailCard
+                  file={activeFile}
+                  index={files.findIndex((f) => f.id === activeFile.id)}
+                  isSelected={selectedIds.has(activeFile.id)}
+                  thumbnailSize={autoThumbnailSize}
+                  onSelect={() => {}}
+                  onRemove={() => {}}
+                />
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* Merge Button - Shows when files are added */}
@@ -798,7 +651,7 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
           </Button>
           
           <p className="text-xs text-muted-foreground text-center">
-            Files will be merged in the order shown. Drag to reorder • Click to preview
+            Files will be merged in the order shown above. Drag to reorder.
           </p>
         </motion.div>
       )}
@@ -830,9 +683,6 @@ export function MergePDFGrid({ onFilesChange }: MergePDFGridProps) {
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Drag</kbd> Reorder files
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Click</kbd> Preview file
           </span>
         </div>
       )}
