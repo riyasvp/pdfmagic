@@ -136,7 +136,7 @@ export async function handlePdfApiRoute(
     for (const param of additionalParams) {
       const value = formData.get(param) as string;
       if (value) {
-        scriptArgs.push(`${param}=${value}`);
+        scriptArgs.push(value);
       }
     }
 
@@ -190,10 +190,8 @@ export async function handlePdfApiRoute(
     for (const p of inputPaths) {
       await cleanupFile(p);
     }
-  if (outputPath) {
-    await cleanupFile(outputPath);
-    // Schedule demo file cleanup
-    await scheduleDemoCleanup(outputPath);
-  }
+    if (outputPath) {
+      await cleanupFile(outputPath);
+    }
   }
 }
