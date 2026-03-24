@@ -1,6 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { mkdir, writeFile, unlink, access } from "fs/promises";
+import { mkdir, writeFile, unlink, access, readFile } from "fs/promises";
 import { join } from "path";
 import { randomUUID } from "crypto";
 
@@ -12,46 +12,21 @@ const UPLOAD_DIR = join(TMP_DIR, "upload");
 const DOWNLOAD_DIR = join(TMP_DIR, "download");
 const SCRIPTS_DIR = join(process.cwd(), "scripts");
 
-// Python script output type - extends to include all possible properties
+// Render Python service URL
+const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || "https://pdfmagic-zwxl.onrender.com";
+
+// Python script output type
 export type PythonScriptResult = {
   success: boolean;
   output?: string;
   error?: string;
-  // Common Python script return properties
-  linksAdded?: number;
-  bookmarks?: unknown[];
-  bookmarkCount?: number;
-  file1_pages?: number;
-  file2_pages?: number;
-  identical_pages?: number;
-  notice?: string;
-  attachmentCount?: number;
-  count?: number;
-  linkCount?: number;
-  links?: unknown[];
-  jsonOutput?: string;
-  pagesExtracted?: number;
-  pagesPerSheet?: number;
-  originalPages?: number;
-  imposedSheets?: number;
+  downloadUrl?: string;
+  fileName?: string;
+  file_data?: string;
+  text?: string;
   metadata?: Record<string, unknown>;
-  pages_processed?: number;
-  originalSize?: number;
-  optimizedSize?: number;
-  reduction?: number;
-  original_pages?: number;
-  new_pages?: number;
-  pdfaVersion?: string;
-  pagesRecovered?: number;
-  permissions?: Record<string, boolean>;
-  files_count?: number;
-  stampedCount?: number;
-  failedCount?: number;
-  unlocked?: boolean;
-  password?: string;
-  passwordsTried?: number;
-  validation?: Record<string, unknown>;
-  // Additional properties as needed by Python scripts
+  pages?: number;
+  info?: Record<string, unknown>;
   [key: string]: unknown;
 };
 
@@ -92,14 +67,18 @@ export async function saveUploadedFile(
   return filePath;
 }
 
-// Execute Python script
+// Execute Python script - NOW ROUTES TO RENDER PYTHON SERVICE
 export async function executePythonScript(
   scriptName: string,
   args: string[]
 ): Promise<PythonScriptResult> {
-  const scriptPath = join(SCRIPTS_DIR, scriptName);
+  // If running on Vercel, use the Render Python service
+  if (process.env.VERCEL === '1') {
+    return executeViaRenderService(scriptName, args);
+  }
 
-  // Set environment variables for Python scripts
+  // Local development - use local Python
+  const scriptPath = join(SCRIPTS_DIR, scriptName);
   const env = {
     ...process.env,
     DOWNLOAD_DIR: DOWNLOAD_DIR,
@@ -107,25 +86,14 @@ export async function executePythonScript(
   };
 
   try {
-    // Check if Python is available
     const pythonCmd = process.platform === "win32" ? "py -3" : "python3";
-
-    // First check if Python is installed (skip check on Vercel)
-    if (process.env.VERCEL === '1') {
-      return {
-        success: false,
-        error: "PDF processing requires Python which is not available on this serverless platform. Please use the downloadable desktop version or contact support."
-      };
-    }
-
-    // Escape paths for shell (handle Windows paths with spaces)
     const escapedArgs = args.map((a) => `"${a.replace(/"/g, '\\"')}"`).join(" ");
 
     const { stdout, stderr } = await execAsync(
       `${pythonCmd} "${scriptPath}" ${escapedArgs}`,
       {
-        timeout: 120000, // 2 minutes timeout
-        maxBuffer: 1024 * 1024 * 50, // 50MB buffer
+        timeout: 120000,
+        maxBuffer: 1024 * 1024 * 50,
         env,
       }
     );
@@ -134,22 +102,128 @@ export async function executePythonScript(
       console.error("Python stderr:", stderr);
     }
 
-    // Parse JSON output
     try {
       const result = JSON.parse(stdout.trim()) as PythonScriptResult;
       return result;
     } catch {
-      // If not JSON, return raw output
       return { success: true, output: stdout.trim() };
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Python execution error:", errorMessage);
     return { success: false, error: errorMessage };
-  } finally {
-    for (const arg of args) {
-      await cleanupFile(arg);
+  }
+}
+
+// Map script names to Render service endpoints
+function getEndpointForScript(scriptName: string): string | null {
+  const mapping: Record<string, string> = {
+    'merge_pdf.py': 'pdf-merge',
+    'split_pdf.py': 'pdf-split',
+    'compress_pdf.py': 'pdf-compress',
+    'rotate_pdf.py': 'pdf-rotate',
+    'delete_pages.py': 'pdf-delete-pages',
+    'protect_pdf.py': 'pdf-protect',
+    'unlock_pdf.py': 'pdf-unlock',
+    'extract_text.py': 'pdf-extract-text',
+    'get_metadata.py': 'pdf-metadata',
+    'add_watermark.py': 'pdf-watermark',
+  };
+  return mapping[scriptName] || null;
+}
+
+// Execute via Render Python Service
+async function executeViaRenderService(
+  scriptName: string,
+  args: string[]
+): Promise<PythonScriptResult> {
+  const endpoint = getEndpointForScript(scriptName);
+  
+  if (!endpoint) {
+    // For scripts without direct Render endpoint, use Supabase Edge Function as fallback
+    return {
+      success: false,
+      error: `Tool '${scriptName}' is not yet available on the cloud service. Please try again later or use the desktop version.`
+    };
+  }
+
+  try {
+    // Read files from args (first arg is usually input file)
+    const inputPath = args[0];
+    if (!inputPath) {
+      return { success: false, error: "No input file provided" };
     }
+
+    // Read the file
+    const fileBuffer = await readFile(inputPath);
+    const fileName = inputPath.split('/').pop() || 'document.pdf';
+
+    // Create form data
+    const formData = new FormData();
+    const blob = new Blob([fileBuffer], { type: 'application/pdf' });
+    formData.append('files', blob, fileName);
+
+    // Add additional parameters based on script
+    if (scriptName === 'split_pdf.py' && args[1]) {
+      formData.append('ranges', args[1]);
+    }
+    if (scriptName === 'rotate_pdf.py' && args[1]) {
+      formData.append('degrees', args[1]);
+    }
+    if (scriptName === 'delete_pages.py' && args[1]) {
+      formData.append('pages', args[1]);
+    }
+    if (scriptName === 'protect_pdf.py' && args[1]) {
+      formData.append('password', args[1]);
+    }
+    if (scriptName === 'unlock_pdf.py' && args[1]) {
+      formData.append('password', args[1]);
+    }
+    if (scriptName === 'add_watermark.py' && args[1]) {
+      formData.append('text', args[1]);
+    }
+
+    // Call Render service
+    const response = await fetch(`${PYTHON_SERVICE_URL}/${endpoint}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+
+    // Handle binary response (PDF file)
+    if (contentType.includes('application/pdf') || contentType.includes('application/octet-stream')) {
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      let outputFileName = 'output.pdf';
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match) outputFileName = match[1];
+
+      // Save to download directory
+      const outputPath = join(DOWNLOAD_DIR, outputFileName);
+      await writeFile(outputPath, Buffer.from(arrayBuffer));
+
+      return {
+        success: true,
+        output: outputPath,
+        fileName: outputFileName,
+        file_data: base64,
+      };
+    }
+
+    // Handle JSON response
+    const result = await response.json();
+    return result;
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Render service error:", errorMessage);
+    return { 
+      success: false, 
+      error: `PDF processing service unavailable. Please try again later. (${errorMessage})` 
+    };
   }
 }
 
