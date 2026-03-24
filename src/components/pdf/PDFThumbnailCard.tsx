@@ -60,6 +60,8 @@ export const PDFThumbnailCard = memo(function PDFThumbnailCard({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      // Don't select if clicking remove button
+      if ((e.target as HTMLElement).closest('[data-remove-btn]')) return;
       e.stopPropagation();
       onSelect(file.id, e.ctrlKey || e.metaKey || e.shiftKey);
     },
@@ -84,15 +86,17 @@ export const PDFThumbnailCard = memo(function PDFThumbnailCard({
         exit={{ opacity: 0, scale: 0.8, y: -20 }}
         whileHover={{ scale: 1.02 }}
         className={cn(
-          "relative group cursor-pointer select-none",
+          "relative group select-none",
           isDragging && "z-50"
         )}
       >
-        {/* Main Card */}
+        {/* Main Card - ENTIRE CARD IS DRAGGABLE */}
         <div
+          {...attributes}
+          {...listeners}
           onClick={handleClick}
           className={cn(
-            "relative rounded-xl overflow-hidden transition-all duration-200",
+            "relative rounded-xl overflow-hidden transition-all duration-200 cursor-grab active:cursor-grabbing",
             "bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-800/80 dark:to-slate-900/40",
             "backdrop-blur-sm border-2",
             isSelected
@@ -102,19 +106,22 @@ export const PDFThumbnailCard = memo(function PDFThumbnailCard({
           )}
           style={{ width: thumbnailSize }}
         >
+          {/* Large Drag Indicator Strip on Left */}
+          <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-violet-400 to-purple-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+
           {/* Thumbnail Container */}
           <div
-            className="relative bg-slate-100 dark:bg-slate-800 overflow-hidden"
+            className="relative bg-slate-100 dark:bg-slate-800 overflow-hidden ml-2"
             style={{
               height: thumbnailSize * 1.4,
-              width: thumbnailSize,
+              width: thumbnailSize - 8,
             }}
           >
             {/* Order Number Badge */}
             <div className="absolute top-2 left-2 z-20">
               <div
                 className={cn(
-                  "w-7 h-7 rounded-lg flex items-center justify-center",
+                  "w-8 h-8 rounded-lg flex items-center justify-center",
                   "bg-gradient-to-br from-violet-500 to-purple-600 text-white",
                   "text-sm font-bold shadow-lg shadow-violet-500/30"
                 )}
@@ -125,28 +132,22 @@ export const PDFThumbnailCard = memo(function PDFThumbnailCard({
 
             {/* Delete Button */}
             <button
+              data-remove-btn
               onClick={handleRemove}
               className={cn(
-                "absolute top-2 right-2 z-20 p-1.5 rounded-lg",
+                "absolute top-2 right-2 z-20 p-2 rounded-lg",
                 "bg-red-500/90 hover:bg-red-600 text-white",
                 "opacity-0 group-hover:opacity-100 transition-all duration-200",
                 "hover:scale-110 shadow-lg"
               )}
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
 
-            {/* Drag Handle */}
-            <div
-              {...attributes}
-              {...listeners}
-              className={cn(
-                "absolute bottom-2 right-2 z-20 p-1.5 rounded-lg cursor-grab active:cursor-grabbing",
-                "bg-slate-900/50 hover:bg-slate-900/70 text-white",
-                "opacity-0 group-hover:opacity-100 transition-all duration-200"
-              )}
-            >
-              <GripVertical className="w-4 h-4" />
+            {/* Drag Handle Indicator - Now at top, always visible */}
+            <div className="absolute bottom-2 right-2 z-20 flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-900/60 text-white text-[10px] font-medium">
+              <GripVertical className="w-3.5 h-3.5" />
+              <span>Drag</span>
             </div>
 
             {/* Thumbnail Image or Placeholder */}
@@ -155,7 +156,6 @@ export const PDFThumbnailCard = memo(function PDFThumbnailCard({
                 <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
               </div>
             ) : file.error ? (
-              // Show PDF icon on error instead of error text
               <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
                 <div className="w-16 h-20 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-lg">
                   <FileText className="w-8 h-8 text-white" />
@@ -194,7 +194,7 @@ export const PDFThumbnailCard = memo(function PDFThumbnailCard({
           </div>
 
           {/* File Info */}
-          <div className="p-2">
+          <div className="p-2 ml-2">
             <p
               className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate"
               title={file.name}
@@ -215,7 +215,7 @@ export const PDFThumbnailCard = memo(function PDFThumbnailCard({
         {/* Dragging Shadow Effect */}
         {isDragging && (
           <div
-            className="absolute inset-0 rounded-xl bg-violet-500/10 -z-10 blur-xl"
+            className="absolute inset-0 rounded-xl bg-violet-500/20 -z-10 blur-xl"
             style={{ transform: "scale(1.1)" }}
           />
         )}
